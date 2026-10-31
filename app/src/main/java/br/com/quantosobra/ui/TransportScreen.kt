@@ -24,6 +24,21 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     Page("Transporte", "Passagens e benefícios da empresa", back) {
         SectionTotal("Descontado do orçamento", BudgetMath.transportBudgetCost(b))
         SurfaceCard {
+            Text("Como você vai ao trabalho?", style = MaterialTheme.typography.titleMedium)
+            listOf(
+                CommuteMode.PUBLIC to "Transporte público",
+                CommuteMode.PRIVATE to "Carro ou moto",
+                CommuteMode.BIKE_WALK to "Bicicleta ou a pé",
+                CommuteMode.HOME to "Trabalho remoto"
+            ).forEach { (mode, label) ->
+                FilterChip(selected = t.commuteMode == mode,
+                    onClick = { update(t.copy(commuteMode = mode, mode = TransportMode.NONE,
+                        customOnPayroll = false, deductedFromNetSalary = false)) },
+                    label = { Text(label) })
+            }
+        }
+        if (t.commuteMode == CommuteMode.PUBLIC) {
+        SurfaceCard {
             FieldAmount("Valor de cada passagem", t.fareCents,
                 { update(t.copy(fareCents = it)) })
             FieldCount("Quantas passagens por dia?", t.ridesPerDay, 0..20,
@@ -72,13 +87,21 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             if (b.salary.mode == SalaryMode.GROSS && t.mode == TransportMode.CLT)
                 Hint("No modo salário bruto, o vale-transporte CLT já entra automaticamente na folha e não é lançado duas vezes.")
         }
+        }
+        if (t.commuteMode == CommuteMode.PRIVATE) {
+            SurfaceCard {
+                FieldAmount("Custo mensal com veículo", t.privateMonthlyCents,
+                    { update(t.copy(privateMonthlyCents = it)) })
+                Hint("Inclua combustível, manutenção e estacionamento conforme seu uso.")
+            }
+        }
         SurfaceCard {
             Text("Resumo mensal", style = MaterialTheme.typography.titleMedium)
-            ValueLine("Passagens no mês", gross)
-            ValueLine("Parte estimada da empresa", company)
+            ValueLine(if (t.commuteMode == CommuteMode.PUBLIC) "Passagens no mês" else "Transporte mensal", gross)
+            if (t.commuteMode == CommuteMode.PUBLIC) ValueLine("Parte estimada da empresa", company)
             HorizontalDivider(color = Lilac)
             ValueLine("Custo do trabalhador", employee, emphasize = true)
-            if (BudgetMath.payrollTransport(b) > 0L || (b.salary.mode == SalaryMode.NET && t.mode != TransportMode.NONE && t.deductedFromNetSalary)) {
+            if (BudgetMath.payrollTransport(b) > 0L || (b.salary.mode == SalaryMode.NET && t.commuteMode == CommuteMode.PUBLIC && t.mode != TransportMode.NONE && t.deductedFromNetSalary)) {
                 Hint("Esse custo já consta como desconto no salário, sem duplicação no orçamento.")
             }
         }

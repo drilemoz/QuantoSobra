@@ -8,6 +8,10 @@ import kotlin.math.min
 
 /** O modo líquido mantém integralmente os dados de versões anteriores. */
 enum class SalaryMode { NET, GROSS }
+/** Vínculo declarado pelo usuário. INSS/IR da central só são aplicados à CLT. */
+enum class WorkType { UNKNOWN, CLT, MEI_PJ, SELF_EMPLOYED, PUBLIC_SERVANT, OTHER }
+enum class RentPeriod { MONTHLY, YEARLY }
+enum class CommuteMode { PUBLIC, PRIVATE, BIKE_WALK, HOME, UNSET }
 
 data class PayrollDeduction(
     val id: Long,
@@ -60,12 +64,18 @@ data class TransportConfig(
     /** Marcar apenas quando o salário líquido informado JÁ descontou o VT. */
     val deductedFromNetSalary: Boolean = false,
     /** Para custeio percentual personalizado: desconto na folha ou pago por fora. */
-    val customOnPayroll: Boolean = false
+    val customOnPayroll: Boolean = false,
+    val commuteMode: CommuteMode = CommuteMode.PUBLIC,
+    val privateMonthlyCents: Long = 0
 )
 
 data class Budget(
+    val workType: WorkType = WorkType.UNKNOWN,
+    val rentPeriod: RentPeriod = RentPeriod.MONTHLY,
+    val iptuPeriod: RentPeriod = RentPeriod.MONTHLY,
     val netSalaryCents: Long = 0,
     val salary: SalaryConfig = SalaryConfig(),
+    val foodEstimateCents: Long = 0,
     val rentCents: Long = 0,
     val condominiumCents: Long = 0,
     val iptuCents: Long = 0,
@@ -86,18 +96,35 @@ object BudgetMath {
     fun productCost(item: FoodProduct): Long =
         (item.unitPriceCents.coerceAtLeast(0) * item.quantityHundredths.coerceIn(0, 100_000) + 50L) / 100L
 
-    fun housing(b: Budget): Long = b.rentCents + b.condominiumCents + b.iptuCents
-    fun food(b: Budget): Long = b.foodOutsideCents + b.foodProducts.sumOf(::productCost)
+    fun monthlyRent(b: Budget): Long = when (b.rentPeriod) {
+        RentPeriod.MONTHLY -> b.rentCents
+        RentPeriod.YEARLY -> (b.rentCents.coerceAtLeast(0L) + 6L) / 12L
+    }
+    fun monthlyIptu(b: Budget): Long = if (b.iptuPeriod == RentPeriod.YEARLY)
+        (b.iptuCents.coerceAtLeast(0L) + 6L) / 12L else b.iptuCents
+    fun housing(b: Budget): Long = monthlyRent(b) + b.condominiumCents + monthlyIptu(b)
+    fun foodMarket(b: Budget): Long {
+        val detailed = b.foodProducts.sumOf(::productCost)
+        val allPriced = b.foodProducts.isNotEmpty() && b.foodProducts.all { it.unitPriceCents > 0L }
+        // Durante o preenchimento parcial, não subestimar o orçamento do mercado.
+        return if (allPriced) detailed else maxOf(detailed, b.foodEstimateCents)
+    }
+    fun food(b: Budget): Long = b.foodOutsideCents + foodMarket(b)
     fun foodPaidFromCash(b: Budget): Long = (food(b) - b.salary.foodBenefitCents).coerceAtLeast(0L)
     fun bills(b: Budget): Long = b.electricityCents + b.waterCents + b.internetCents +
         b.mobileCents + b.gasCents + b.otherBillsCents
     fun extras(b: Budget): Long = b.extras.sumOf { it.amountCents }
-    fun transportGross(t: TransportConfig): Long = t.fareCents.coerceAtLeast(0) *
-        t.ridesPerDay.coerceIn(0, 20) * t.daysPerMonth.coerceIn(0, 31)
+    fun transportGross(t: TransportConfig): Long = when (t.commuteMode) {
+        CommuteMode.PUBLIC -> t.fareCents.coerceAtLeast(0) *
+            t.ridesPerDay.coerceIn(0, 20) * t.daysPerMonth.coerceIn(0, 31)
+        CommuteMode.PRIVATE -> t.privateMonthlyCents.coerceAtLeast(0L)
+        else -> 0L
+    }
 
     /** Estimativa: limite geral legal de até 6% do salário básico, ou custo menor. */
     fun transportEmployeeCost(t: TransportConfig, salaryBasicFallbackCents: Long = 0L): Long {
         val gross = transportGross(t)
+        if (t.commuteMode != CommuteMode.PUBLIC) return gross
         return when (t.mode) {
             TransportMode.NONE -> gross
             TransportMode.FULL -> 0L
@@ -111,10 +138,10 @@ object BudgetMath {
 
     /** Se já foi deduzido da renda líquida, não contar a mesma despesa de novo. */
     fun transportFromAvailable(t: TransportConfig): Long =
-        if (t.deductedFromNetSalary && t.mode != TransportMode.NONE) 0 else transportEmployeeCost(t)
+        if (t.commuteMode == CommuteMode.PUBLIC && t.deductedFromNetSalary && t.mode != TransportMode.NONE) 0 else transportEmployeeCost(t)
 
     fun payrollTransport(b: Budget): Long {
-        if (b.salary.mode != SalaryMode.GROSS) return 0L
+        if (b.salary.mode != SalaryMode.GROSS || b.transport.commuteMode != CommuteMode.PUBLIC) return 0L
         return when (b.transport.mode) {
             TransportMode.CLT -> transportEmployeeCost(b.transport, b.salary.grossCents)
             TransportMode.CUSTOM -> if (b.transport.customOnPayroll) transportEmployeeCost(b.transport) else 0L
@@ -125,7 +152,7 @@ object BudgetMath {
         else SalaryMath.breakdown(b).netCents
     fun transportBudgetCost(b: Budget): Long = if (b.salary.mode == SalaryMode.NET)
         transportFromAvailable(b.transport)
-    else transportEmployeeCost(b.transport, b.salary.grossCents) - payrollTransport(b)
+    else (transportEmployeeCost(b.transport, b.salary.grossCents) - payrollTransport(b)).coerceAtLeast(0L)
     fun expenses(b: Budget): Long = housing(b) + foodPaidFromCash(b) + bills(b) +
         extras(b) + transportBudgetCost(b)
     fun availableAfterExpenses(b: Budget): Long = salaryNet(b) - expenses(b)
@@ -203,6 +230,12 @@ object Money {
     private val br = Locale.forLanguageTag("pt-BR")
     fun format(cents: Long): String = NumberFormat.getCurrencyInstance(br).format(cents / 100.0)
     fun input(cents: Long): String = BigDecimal.valueOf(cents, 2).toPlainString().replace('.', ',')
+    /** Exibição localizada ao sair do campo; não altera o cursor durante a digitação. */
+    fun inputGrouped(cents: Long): String = NumberFormat.getNumberInstance(br).apply {
+        minimumFractionDigits = 2
+        maximumFractionDigits = 2
+        isGroupingUsed = true
+    }.format(BigDecimal.valueOf(cents, 2))
 
     /** Aceita 1.234,56, 1234.56, 1234 e 5,70. Valores negativos não são aceitos. */
     fun parse(raw: String): Long? {

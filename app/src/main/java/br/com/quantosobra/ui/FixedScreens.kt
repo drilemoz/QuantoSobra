@@ -1,6 +1,12 @@
 package br.com.quantosobra.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import br.com.quantosobra.domain.RentPeriod
+import br.com.quantosobra.domain.Money
 import br.com.quantosobra.domain.Budget
 import br.com.quantosobra.domain.BudgetMath
 
@@ -9,10 +15,27 @@ fun HousingScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     Page("Moradia", "Seu custo para ter um lugar só seu", back) {
         SectionTotal("Total mensal de moradia", BudgetMath.housing(b))
         SurfaceCard {
-            FieldAmount("Aluguel mensal", b.rentCents, { change(b.copy(rentCents = it)) })
+            FieldAmount(if (b.rentPeriod == RentPeriod.YEARLY) "Aluguel anual" else "Aluguel mensal",
+                b.rentCents, { change(b.copy(rentCents = it)) })
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = b.rentPeriod == RentPeriod.MONTHLY,
+                    onClick = { change(b.copy(rentPeriod = RentPeriod.MONTHLY)) }, label = { Text("Mensal") })
+                FilterChip(selected = b.rentPeriod == RentPeriod.YEARLY,
+                    onClick = { change(b.copy(rentPeriod = RentPeriod.YEARLY)) }, label = { Text("Anual") })
+            }
+            if (b.rentPeriod == RentPeriod.YEARLY)
+                Hint("Equivalente mensal: ${Money.format(BudgetMath.monthlyRent(b))}. O pagamento anual real continua ocorrendo na data da cobrança.")
             FieldAmount("Condomínio", b.condominiumCents, { change(b.copy(condominiumCents = it)) })
-            FieldAmount("IPTU mensal", b.iptuCents, { change(b.copy(iptuCents = it)) },
-                "Se o IPTU for anual, divida por 12 antes de cadastrar.")
+            FieldAmount(if (b.iptuPeriod == RentPeriod.YEARLY) "IPTU anual" else "IPTU mensal",
+                b.iptuCents, { change(b.copy(iptuCents = it)) })
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = b.iptuPeriod == RentPeriod.MONTHLY,
+                    onClick = { change(b.copy(iptuPeriod = RentPeriod.MONTHLY)) }, label = { Text("IPTU mensal") })
+                FilterChip(selected = b.iptuPeriod == RentPeriod.YEARLY,
+                    onClick = { change(b.copy(iptuPeriod = RentPeriod.YEARLY)) }, label = { Text("IPTU anual") })
+            }
+            if (b.iptuPeriod == RentPeriod.YEARLY)
+                Hint("IPTU mensal equivalente: ${Money.format(BudgetMath.monthlyIptu(b))}.")
         }
         Hint("Caução, primeiro aluguel e mudança são custos iniciais. Esta versão calcula principalmente as despesas recorrentes.")
     }

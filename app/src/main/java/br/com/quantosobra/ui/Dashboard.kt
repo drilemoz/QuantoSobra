@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.sp
 import br.com.quantosobra.domain.*
 
 @Composable
-fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Budget) -> Unit) {
+fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Budget) -> Unit, onRestartWizard: () -> Unit) {
     var optionsDialog by remember { mutableStateOf(false) }
     var exampleDialog by remember { mutableStateOf(false) }
     var clearDialog by remember { mutableStateOf(false) }
@@ -151,9 +151,13 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
         Page("Seu espaço", "Preferências e informações do aplicativo", { optionsDialog = false }) {
             SurfaceCard {
                 Text("Quanto Sobra?", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                Text("Versão 0.1.0-alpha.6", fontSize = 12.sp, color = Muted)
+                Text("Versão 0.1.0-alpha.7", fontSize = 12.sp, color = Muted)
                 HorizontalDivider(color = Lilac)
                 Text("Simule seu orçamento com privacidade. Tudo fica neste dispositivo.", fontSize = 13.sp, color = Muted)
+                OutlinedButton(onClick = { optionsDialog = false; onRestartWizard() },
+                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Text("Refazer configuração guiada")
+                }
                 AppButton("Carregar exemplo de R$ 3.000") { optionsDialog = false; exampleDialog = true }
                 OutlinedButton(onClick = { optionsDialog = false; clearDialog = true },
                     modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {

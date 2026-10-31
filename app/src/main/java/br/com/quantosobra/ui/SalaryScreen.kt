@@ -158,9 +158,7 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             OutlinedTextField(value = deductionName, onValueChange = { if (it.length <= 80) deductionName = it },
                 modifier = Modifier.fillMaxWidth(), label = { Text("Nome do desconto") }, singleLine = true,
                 shape = RoundedCornerShape(15.dp))
-            OutlinedTextField(value = deductionValue, onValueChange = { if (it.length <= 19) deductionValue = it },
-                modifier = Modifier.fillMaxWidth(), label = { Text("Valor mensal em R$") },
-                isError = parsed == null, singleLine = true, shape = RoundedCornerShape(15.dp))
+            CurrencyTextEntry("Valor mensal em R$", deductionValue, { deductionValue = it })
             Hint("Ex.: plano de saúde R$ 80 ou vale-refeição R$ 30. Informe somente a quantia realmente descontada no contracheque.")
         }
     }

@@ -28,6 +28,9 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             }
         }
         SurfaceCard {
+            FieldAmount("Estimativa mensal do supermercado", b.foodEstimateCents,
+                { change(b.copy(foodEstimateCents = it)) },
+                "Enquanto os produtos não têm todos os preços, a estimativa evita subestimar o gasto. Quando estiverem completos, será substituída pelo total real.")
             Text("Refeições fora de casa", fontSize = 17.sp, fontWeight = FontWeight.Bold)
             FieldAmount("Restaurantes / lanches por mês", b.foodOutsideCents,
                 { change(b.copy(foodOutsideCents = it)) })
@@ -39,6 +42,20 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 Text("${b.foodProducts.size} itens", color = Muted, fontSize = 12.sp)
             }
             Hint("Informe o preço por unidade e quanto consome no mês. Ex.: arroz R$ 8/kg × 5 kg.")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = {
+                    val current = b.foodProducts
+                    val essentials = listOf("Arroz", "Feijão", "Óleo", "Sal", "Ovos", "Macarrão", "Leite", "Café")
+                    val existing = current.map { it.name.trim().lowercase(java.util.Locale.ROOT) }.toSet()
+                    val names = essentials.filter { it.lowercase(java.util.Locale.ROOT) !in existing }
+                        .take((500 - current.size).coerceAtLeast(0))
+                    var id = (current.maxOfOrNull { it.id } ?: 0L)
+                    val added = names.map { FoodProduct(++id, it, 0L, 100) }
+                    if (added.isNotEmpty()) change(b.copy(foodProducts = current + added))
+                }) { Text("＋ Essenciais", fontSize = 12.sp) }
+            }
+            if (b.foodEstimateCents > 0L && b.foodProducts.any { it.unitPriceCents == 0L })
+                Hint("Há produtos sem preço. A estimativa continua protegendo o orçamento; não são valores de mercado pesquisados.")
             if (b.foodProducts.isEmpty()) {
                 Text("Nenhum produto cadastrado ainda.", color = Muted, fontSize = 13.sp)
             } else {
@@ -61,7 +78,7 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             }
             AppButton("+ Adicionar produto") { showAdd = true }
             HorizontalDivider(color = Lilac)
-            ValueLine("Subtotal supermercado", b.foodProducts.sumOf(BudgetMath::productCost), emphasize = true)
+            ValueLine("Subtotal supermercado", BudgetMath.foodMarket(b), emphasize = true)
         }
         Hint("Uma lista de planejamento mensal: não há compras automáticas nem acesso à internet.")
     }
@@ -107,11 +124,7 @@ private fun ProductDialog(initial: FoodProduct?, dismiss: () -> Unit,
         OutlinedTextField(name, { if (it.length <= 80) name = it },
             modifier = Modifier.fillMaxWidth(), label = { Text("Nome do produto") },
             singleLine = true, shape = RoundedCornerShape(15.dp))
-        OutlinedTextField(price, { if (it.length <= 19) price = it },
-            modifier = Modifier.fillMaxWidth(), label = { Text("Preço por unidade") },
-            prefix = { Text("R$ ") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,
-            shape = RoundedCornerShape(15.dp), isError = cents == null)
+        CurrencyTextEntry("Preço por unidade", price, { price = it })
         OutlinedTextField(qty, { if (it.length <= 10) qty = it },
             modifier = Modifier.fillMaxWidth(), label = { Text("Quantidade por mês") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,

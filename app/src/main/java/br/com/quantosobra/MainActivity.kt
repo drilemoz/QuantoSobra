@@ -20,13 +20,23 @@ class MainActivity : ComponentActivity() {
             val store = remember { BudgetStore(applicationContext) }
             var budget by remember { mutableStateOf(store.load()) }
             var panel by rememberSaveable { mutableStateOf("home") }
+            var wizardActive by remember { mutableStateOf(!store.onboardingCompleted()) }
             val setBudget: (Budget) -> Unit = { updated ->
                 budget = updated
                 store.save(updated)
             }
             QuantoSobraTheme {
+                if (wizardActive) {
+                    OnboardingWizard(if (budget == Budget()) budget.copy(
+                        transport = budget.transport.copy(commuteMode = CommuteMode.UNSET)) else budget) { updated ->
+                        setBudget(updated)
+                        store.completeOnboarding()
+                        wizardActive = false
+                        panel = "home"
+                    }
+                } else {
                 // A home permanece ao fundo: as categorias são modais, não telas completas.
-                Dashboard(budget, { panel = it }, setBudget)
+                Dashboard(budget, { panel = it }, setBudget, onRestartWizard = { panel = "home"; wizardActive = true })
                 when (panel) {
                     "salary" -> SalaryScreen(budget, setBudget) { panel = "home" }
                     "housing" -> HousingScreen(budget, setBudget) { panel = "home" }
@@ -35,6 +45,7 @@ class MainActivity : ComponentActivity() {
                     "transport" -> TransportScreen(budget, setBudget) { panel = "home" }
                     "extras" -> ExtrasScreen(budget, setBudget) { panel = "home" }
                     "reserve" -> ReserveScreen(budget, setBudget) { panel = "home" }
+                }
                 }
             }
         }

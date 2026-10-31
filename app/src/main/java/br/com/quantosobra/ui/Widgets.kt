@@ -5,18 +5,22 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -37,14 +41,23 @@ fun SurfaceCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.
 
 @Composable
 fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: String? = null) {
-    var input by remember { mutableStateOf(if (cents == 0L) "" else Money.input(cents)) }
+    var input by remember { mutableStateOf(if (cents == 0L) "" else Money.inputGrouped(cents)) }
+    var hasFocus by remember { mutableStateOf(false) }
+    val keyboard = LocalSoftwareKeyboardController.current
     // O estado local precisa acompanhar a limpeza/restauração ou uma alteração externa.
     LaunchedEffect(cents) {
-        if (Money.parse(input) != cents) input = if (cents == 0L) "" else Money.input(cents)
+        if (Money.parse(input) != cents) input = if (cents == 0L) "" else
+            if (hasFocus) Money.input(cents) else Money.inputGrouped(cents)
     }
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().onFocusChanged { focus ->
+                if (hasFocus != focus.isFocused) {
+                    hasFocus = focus.isFocused
+                    input = if (cents == 0L && focus.isFocused) "" else
+                        if (focus.isFocused) Money.input(cents) else Money.inputGrouped(cents)
+                }
+            },
             value = input,
             onValueChange = { newValue ->
                 if (newValue.length <= 19) {
@@ -55,7 +68,9 @@ fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: Stri
             label = { Text(label) },
             prefix = { Text("R$ ") },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
+            supportingText = { Text("Ex.: 12,00 ou 12.00", fontSize = 10.sp) },
             isError = Money.parse(input) == null,
             shape = RoundedCornerShape(15.dp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -67,8 +82,35 @@ fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: Stri
     }
 }
 
+/** Campo para formulários temporários, com pontuação automática ao perder foco. */
+@Composable
+fun CurrencyTextEntry(label: String, value: String, onChange: (String) -> Unit) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    var focused by remember { mutableStateOf(false) }
+    OutlinedTextField(
+        modifier = Modifier.fillMaxWidth().onFocusChanged { focus ->
+            if (focused != focus.isFocused) {
+                focused = focus.isFocused
+                Money.parse(value)?.let { cents ->
+                    onChange(if (focused) Money.input(cents) else Money.inputGrouped(cents))
+                }
+            }
+        },
+        value = value,
+        onValueChange = { if (it.length <= 19) onChange(it) },
+        label = { Text(label) },
+        prefix = { Text("R$ ") },
+        isError = Money.parse(value) == null,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
+        shape = RoundedCornerShape(15.dp)
+    )
+}
+
 @Composable
 fun FieldCount(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
+    val keyboard = LocalSoftwareKeyboardController.current
     var input by remember { mutableStateOf(value.toString()) }
     LaunchedEffect(value) {
         if (input.toIntOrNull() != value) input = value.toString()
@@ -85,7 +127,8 @@ fun FieldCount(label: String, value: Int, range: IntRange, onChange: (Int) -> Un
         label = { Text(label) },
         singleLine = true,
         isError = input.toIntOrNull()?.let { it in range } != true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
         shape = RoundedCornerShape(15.dp)
     )
 }

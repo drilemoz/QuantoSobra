@@ -1,10 +1,15 @@
-# Quanto Sobra? — 0.1.0-alpha.6
+# Quanto Sobra? — 0.1.0-alpha.7
 
-**31/10/2026 · versionCode 6**
+**31/10/2026 · versionCode 7**
 
-- Suporte à assinatura Release estável por quatro GitHub Secrets.
-- Workflow gera Debug sem Secrets; gera Release assinado somente quando todos os Secrets estiverem definidos.
-- Certificado e senhas ficam fora do ZIP de código-fonte e fora do repositório.
-- Nenhuma alteração na UI, no esquema de dados nem nos cálculos da alpha.5.
+- Assistente de primeiro acesso com 8 etapas, sem rolagem entre campos. Botões Voltar, Continuar e Definir depois, cada etapa de preenchimento é curta.
+- Vínculo CLT, MEI/PJ, autônomo/informal, servidor público e outra renda. Cálculo automático da folha de pagamento apenas para CLT; outros vínculos são registrados sem descontos presumidos.
+- Transporte público, carro/moto, bicicleta/pé e home office; vale-transporte CLT sincronizado com salário para não debitar duas vezes.
+- Aluguel e IPTU com opção mensal/anual: equivalente mensal calculado pelo app.
+- Alimentação com estimativa inicial e botão discreto de produtos essenciais sem preços inventados; preços reais cadastrados manualmente.
+- Campos monetários aceitam `12`, `12.00` e `12,00` e ficam pontuados em pt-BR (`12,00`) após a edição. Teclado decimal, botão Concluído e ajustes para IME.
+- A tela principal e os painéis inferiores continuam disponíveis; usuários existentes preservam orçamento e podem abrir o wizard pelo menu `$`.
+- Persistência JSON schema 3 com retrocompatibilidade v1 e v2, mesmo pacote e mesmas SharedPreferences.
+- Workflow de assinatura opcional mantido. **Não inclui Secrets ou chave privada.**
 
-**Atenção:** o APK Release com a nova chave não atualiza APKs Debug já instalados. Backup/restauração ainda não implementados; preserve os dados. Build e APK Release ainda precisam de validação no GitHub Actions.
+**Validação:** testes Kotlin/JVM com executor local compatível e análise sintática PSI; compilação Android Gradle e testes físicos de layout/teclado ainda pendentes.

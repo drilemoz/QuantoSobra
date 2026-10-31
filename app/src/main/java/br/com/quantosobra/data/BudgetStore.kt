@@ -18,6 +18,10 @@ class BudgetStore(context: Context) {
         }
     }
 
+    /** Contas existentes não são forçadas a refazer o assistente depois de atualizar. */
+    fun onboardingCompleted(): Boolean = prefs.getBoolean("wizard_completed", prefs.contains("budget"))
+    fun completeOnboarding() { prefs.edit().putBoolean("wizard_completed", true).apply() }
+
     fun save(b: Budget) {
         prefs.edit().putString("budget", toJson(b).toString()).apply()
     }
@@ -60,6 +64,9 @@ class BudgetStore(context: Context) {
             )
         }
         return Budget(
+            workType = WorkType.entries.find { it.name == j.optString("workType") } ?: WorkType.UNKNOWN,
+            rentPeriod = RentPeriod.entries.find { it.name == j.optString("rentPeriod") } ?: RentPeriod.MONTHLY,
+            iptuPeriod = RentPeriod.entries.find { it.name == j.optString("iptuPeriod") } ?: RentPeriod.MONTHLY,
             netSalaryCents = j.nonNegativeLong("salary"),
             salary = SalaryConfig(
                 mode = SalaryMode.entries.find { it.name == salaryJ.optString("mode") } ?: SalaryMode.NET,
@@ -70,6 +77,7 @@ class BudgetStore(context: Context) {
                 foodBenefitCents = salaryJ.nonNegativeLong("foodBenefit"),
                 deductions = deductions
             ),
+            foodEstimateCents = j.nonNegativeLong("foodEstimate"),
             rentCents = j.nonNegativeLong("rent"),
             condominiumCents = j.nonNegativeLong("condominium"),
             iptuCents = j.nonNegativeLong("iptu"),
@@ -82,6 +90,9 @@ class BudgetStore(context: Context) {
             foodOutsideCents = j.nonNegativeLong("foodOutside"),
             foodProducts = products,
             transport = TransportConfig(
+                commuteMode = CommuteMode.entries.find { it.name == t.optString("commute") }
+                    ?: CommuteMode.PUBLIC,
+                privateMonthlyCents = t.nonNegativeLong("privateMonthly"),
                 fareCents = t.nonNegativeLong("fare"),
                 ridesPerDay = t.nonNegativeInt("rides", 2, 20),
                 daysPerMonth = t.nonNegativeInt("days", 22, 31),
@@ -98,7 +109,10 @@ class BudgetStore(context: Context) {
     }
 
     private fun toJson(b: Budget): JSONObject = JSONObject().apply {
-        put("schema", 2)
+        put("schema", 3)
+        put("workType", b.workType.name)
+        put("rentPeriod", b.rentPeriod.name)
+        put("iptuPeriod", b.iptuPeriod.name)
         put("payroll", JSONObject().apply {
             put("mode", b.salary.mode.name)
             put("gross", b.salary.grossCents)
@@ -113,6 +127,7 @@ class BudgetStore(context: Context) {
             })
         })
         put("salary", b.netSalaryCents)
+        put("foodEstimate", b.foodEstimateCents)
         put("rent", b.rentCents)
         put("condominium", b.condominiumCents)
         put("iptu", b.iptuCents)
@@ -137,6 +152,8 @@ class BudgetStore(context: Context) {
             }) }
         })
         put("transport", JSONObject().apply {
+            put("commute", b.transport.commuteMode.name)
+            put("privateMonthly", b.transport.privateMonthlyCents)
             put("fare", b.transport.fareCents)
             put("rides", b.transport.ridesPerDay)
             put("days", b.transport.daysPerMonth)

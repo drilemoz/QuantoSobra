@@ -2,11 +2,22 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.6` · **versionCode:** `6` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.7` · **versionCode:** `7` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Novo primeiro acesso — wizard (alpha.7)
+
+- Primeira instalação sem orçamento salvo: 8 etapas compactas, cada uma com poucas escolhas/campos, **sem rolagem**. Botões Continuar/Voltar e **Definir depois** em etapas opcionais. O orçamento só é salvo ao concluir.
+- Etapas: tipo de vínculo, renda mensal, como vai ao trabalho, custo do deslocamento, subsídio da empresa, aluguel, alimentação e resumo.
+- Para **CLT**, cálculos automáticos de INSS/IRRF 2026 e desconto de vale-transporte quando configurado. Para MEI/PJ, autônomo, servidor e outra renda não aplica indevidamente o desconto CLT.
+- Moradia com aluguel e IPTU mensal/anual; valores anuais são convertidos em equivalentes mensais sem divisão manual.
+- O painel de Alimentação aceita estimativa do supermercado e uma lista discreta de **essenciais**: arroz, feijão, óleo, sal, ovos, macarrão, leite e café, adicionados **sem preços**. A estimativa continua durante preenchimento parcial; o detalhamento completo substitui a estimativa sem somar ambos.
+- Digite `12`, `12.00`, `12,00` ou `1.234,56`: campos interpretam como reais e formatam com vírgula decimal/ponto de milhar ao perder foco. Durante a digitação não reordenam o cursor.
+- Dados já existentes não forçam refazer onboarding; menu `$` → **Refazer configuração guiada** para executar novamente.
+- Persistência JSON schema 3 compatível com dados antigos, mesmo pacote. O wizard não é confirmação de valor real do contracheque.
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.6-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.7-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -54,11 +65,11 @@ A alpha.2 muda para `android-actions/setup-android@v4` e instala explicitamente 
 ## Funcionalidades implementadas
 
 - Painel roxo com gradiente, saldo disponível, barra de comprometimento e categorias editáveis.
-- Salário **líquido** com edição direta na tela inicial.
-- Moradia: aluguel, condomínio e IPTU mensal.
-- Alimentação: cadastro, edição e exclusão de produtos, preço unitário e quantidade mensal fracionária; também refeições fora.
+- Salário **líquido ou bruto CLT** com edição na tela inicial e assistente de primeiro acesso.
+- Moradia: aluguel e IPTU com valor mensal ou anual, condomínio mensal.
+- Alimentação: estimativa mensal inicial, itens essenciais opcionais sem preço, cadastro/edição/exclusão de produtos e refeições fora.
 - Contas da casa: energia, água, internet, celular, gás e outras.
-- Transporte: valor da passagem, quantidade diária, dias/mês; pagamento próprio, pela empresa integralmente, por percentual customizado ou estimativa CLT de até 6% do salário **básico**.
+- Transporte: transporte público, próprio ou sem deslocamento; passagem, quantidade diária, dias/mês; pagamento próprio, pela empresa integralmente, por percentual customizado ou estimativa CLT de até 6% do salário **básico**.
 - Opção para não descontar vale-transporte duas vezes se já estiver embutido no salário líquido informado.
 - Gastos pessoais: saúde, higiene e limpeza, lazer, roupas, móveis e parcelas, dívidas e outros.
 - Reserva mensal separada das despesas, subtraída apenas do saldo disponível.
@@ -71,7 +82,7 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.6-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.7-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.
@@ -79,14 +90,14 @@ Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugi
 ## Arquitetura
 
 - `domain/Budget.kt`: dados, regras de orçamento, dinheiro em centavos, transporte e cálculo de produtos, sem dependência do Android.
-- `data/BudgetStore.kt`: persistência local com JSON e limites de leitura.
-- `ui/`: dashboard Compose, modais inferiores para categorias, diálogos de edição, campos, tema e componentes reutilizáveis.
+- `data/BudgetStore.kt`: persistência local com JSON schema 3 e leitura retrocompatível.
+- `ui/`: wizard compacto, dashboard Compose, modais inferiores, diálogos, campos com normalização monetária, tema e componentes reutilizáveis.
 - `MainActivity.kt`: dashboard fixo, estado único e exibição contextual de modais, sem biblioteca de navegação externa.
 
 ## Limitações atuais
 
-- Apenas **um orçamento** por dispositivo, em valores mensais.
-- Salário líquido informado manualmente: não calcula INSS, IR, férias ou 13º.
+- Apenas **um orçamento** por dispositivo, com projeção mensal.
+- A folha CLT é estimada com INSS e IRRF 2026; não calcula férias, 13º, múltiplos vínculos nem tributos de MEI/PJ. Para os demais vínculos, informar o valor disponível após tributos conhecidos.
 - Estimativa simplificada de vale-transporte CLT; acordos, jornadas e regras particulares podem alterar o desconto.
 - Ainda sem exportação/importação de backup, gráficos históricos, notificações ou sincronização.
 - **Custos pontuais de mobília/caução** ainda não possuem calendário de ocorrência próprio. Parcelas mensais podem ser lançadas em “Móveis e parcelas”.

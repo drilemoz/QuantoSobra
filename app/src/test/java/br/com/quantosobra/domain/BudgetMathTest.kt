@@ -56,4 +56,42 @@ class BudgetMathTest {
         assertEquals(1_100, BudgetMath.availableAfterExpenses(b))
         assertEquals(-8_900, BudgetMath.availableAfterReserve(b))
     }
+
+    @Test fun annualHousingWithoutManualDivision() {
+        val b = Budget(rentCents = 9_600_00L, rentPeriod = RentPeriod.YEARLY,
+            iptuCents = 1_200_00L, iptuPeriod = RentPeriod.YEARLY,
+            condominiumCents = 10_000L)
+        assertEquals(80_000L, BudgetMath.monthlyRent(b))
+        assertEquals(10_000L, BudgetMath.monthlyIptu(b))
+        assertEquals(100_000L, BudgetMath.housing(b))
+        assertEquals(83L, BudgetMath.monthlyRent(Budget(rentCents = 999L, rentPeriod = RentPeriod.YEARLY)))
+    }
+
+    @Test fun privateCommuteIsNotDeductedFromPayroll() {
+        val b = Budget(workType = WorkType.CLT,
+            salary = SalaryConfig(mode = SalaryMode.GROSS, grossCents = 300_000),
+            transport = TransportConfig(commuteMode = CommuteMode.PRIVATE, privateMonthlyCents = 20_000,
+                mode = TransportMode.CLT))
+        assertEquals(20_000L, BudgetMath.transportGross(b.transport))
+        assertEquals(0L, BudgetMath.payrollTransport(b))
+        assertEquals(20_000L, BudgetMath.transportBudgetCost(b))
+        assertEquals(0L, BudgetMath.transportGross(b.transport.copy(commuteMode = CommuteMode.HOME)))
+    }
+
+    @Test fun foodEstimateReplacedByRealProducts() {
+        val b = Budget(foodEstimateCents = 50_000)
+        assertEquals(50_000L, BudgetMath.food(b))
+        val suggestions = b.copy(foodProducts = listOf(FoodProduct(1L, "Arroz", 0, 100)))
+        assertEquals(50_000L, BudgetMath.food(suggestions))
+        val detailed = b.copy(foodProducts = listOf(FoodProduct(1L, "Arroz", 1_200, 200)))
+        assertEquals(2_400L, BudgetMath.food(detailed))
+    }
+
+    @Test fun moneyAcceptsDotAndCommaWithSameMeaning() {
+        assertEquals(1_200L, Money.parse("12,00"))
+        assertEquals(1_200L, Money.parse("12.00"))
+        assertEquals(1_200L, Money.parse("12"))
+        assertEquals(123_456L, Money.parse("1.234,56"))
+        assertEquals("1.234,56", Money.inputGrouped(123_456L))
+    }
 }
