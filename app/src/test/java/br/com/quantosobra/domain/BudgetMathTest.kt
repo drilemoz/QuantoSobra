@@ -37,10 +37,13 @@ class BudgetMathTest {
     }
 
     @Test fun moneyLocalized() {
-        assertEquals(135_000, Money.parse("1.350,00"))
-        assertEquals(570, Money.parse("5,70"))
-        assertEquals(570, Money.parse("5.70"))
-        assertEquals(135_000, Money.parse("1350"))
+        assertEquals(135_000L, Money.parse("1.350,00"))
+        assertEquals(570L, Money.parse("5,70"))
+        assertEquals(570L, Money.parse("5.70"))
+        assertEquals(135_000L, Money.parse("1350"))
+        assertEquals(135_000L, Money.parse("R$ 1.350,00"))
+        assertEquals(0L, Money.parse(""))
+        assertNull(Money.parse("1,2,3"))
         assertNull(Money.parse("-100"))
         assertEquals(250, Money.quantityHundredths("2,5"))
     }

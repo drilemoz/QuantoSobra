@@ -1,27 +1,22 @@
-# Registro de validação — alpha.2
+# Registro de validação — alpha.3
 
-## Comprovado no ambiente de criação
+## Evidência recebida do workflow Gerar APK 2
 
-- Compilação isolada da lógica de negócio usando o Kotlin CLI (`kotlinc`).
-- Checagens locais dos cenários de orçamento, dinheiro, transporte CLT e quantidade fracionária.
-- Inspeção de XML/estrutura do ZIP.
+- `QuantoSobra-Gerar-APK-2-logs.zip`, execução de 31/10/2026, indica que Android SDK 35 e Gradle 8.11.1 foram preparados.
+- Tarefas `:app:compileDebugKotlin` e `:app:compileDebugUnitTestKotlin` executadas sem erros.
+- **Falha real:** `:app:testDebugUnitTest` com `6 tests completed, 1 failed` / `BudgetMathTest > moneyLocalized FAILED`, linha 40.
+- Causa: comparação de `Int` no esperado com `Long?` no valor real, selecionando igualdade por objetos no JUnit. O conversor isolado devolve `135000` centavos para `1.350,00` e `570` para `5,70`.
+- Warning sobre Node.js 20 do `setup-gradle@v4` não provocou falha; não é o erro deste workflow.
 
-## Diagnóstico do primeiro workflow
+## Correções da alpha.3
 
-- Logs `QuantoSobra-Gerar-APK-1-logs.zip`: etapa `Android SDK 35` (`android-actions/setup-android@v3`) tentou instalar `tools`, pacote removido; falhou com `sdkmanager` código 1. **Nenhuma tarefa Gradle/Kotlin chegou a ser executada.**
-- Corrigido na alpha.2 migrando para `android-actions/setup-android@v4` e `packages: 'platform-tools'`.
-
-## Validação local da alpha.2
-
-- Lógica de domínio compilada com `kotlinc` CLI 1.9, com **18 asserções** independentes para saldo, descontos, refeições e valores.
-- Workflow YAML analisado e configuração `setup-android@v4` + `packages: platform-tools` confirmada.
-- XML do projeto analisado; versionamento (`versionName`, `versionCode`, artifact e UI) consistente.
-- Não foi possível executar Gradle/Compose nem gerar APK localmente por falta de Gradle, SDK Android e bibliotecas Android neste ambiente.
+- Expectativas monetárias do teste `moneyLocalized` passam a ser literais `Long` com `L`.
+- Acrescentadas asserções para `R$ 1.350,00`, string vazia e formato monetário malformado.
+- versionCode, versionName, UI, artifact e documentação sincronizados.
+- Sem mudanças no domínio, persistência e esquema de dados; atualização preserva os dados existentes.
 
 ## Pendente
 
-- `gradle :app:testDebugUnitTest :app:assembleDebug` em Android SDK real.
-- Inspeção visual de interface Compose no Redmi e testes de acessibilidade.
-- Persistência após reinício do aplicativo e testes de atualização.
-
-Atenção: não confundir validação de domínio com build Android completo ou APK pronto.
+- Validar em runner real `gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug` na alpha.3.
+- Inspeção visual em Android e testes de persistência após atualização.
+- Assinatura de APK Debug criada pelo CI pode não ser estável entre runners; não desinstalar versão anterior sem preservar dados.
