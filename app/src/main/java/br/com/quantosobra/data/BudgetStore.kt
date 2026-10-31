@@ -20,7 +20,21 @@ class BudgetStore(context: Context) {
 
     /** Contas existentes não são forçadas a refazer o assistente depois de atualizar. */
     fun onboardingCompleted(): Boolean = prefs.getBoolean("wizard_completed", prefs.contains("budget"))
-    fun completeOnboarding() { prefs.edit().putBoolean("wizard_completed", true).apply() }
+    fun completeOnboarding() { prefs.edit().putBoolean("wizard_completed", true).commit() }
+
+    /** Um upgrade exibe novidades só uma vez; instalação limpa vai primeiro ao wizard. */
+    fun shouldShowWhatsNew(version: String): Boolean =
+        StartupFlow.destination(onboardingCompleted(), prefs.getString("last_seen_release", null), version) ==
+            StartupDestination.NEWS
+
+    fun markWhatsNewSeen(version: String) {
+        prefs.edit().putString("last_seen_release", version).commit()
+    }
+
+    /** Limpeza interna equivale a um início novo; não mantém um wizard marcado como concluído. */
+    fun clearAndRestartWizard() {
+        prefs.edit().remove("budget").putBoolean("wizard_completed", false).commit()
+    }
 
     fun save(b: Budget) {
         prefs.edit().putString("budget", toJson(b).toString()).apply()

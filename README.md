@@ -2,7 +2,16 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.8` · **versionCode:** `7` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.9` · **versionCode:** `9` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Novidades e configurações — alpha.9
+
+- **Instalação inicial, reinstalação limpa ou limpeza de dados do Android:** wizard abre automaticamente. Backup automático de dados continua desativado no manifesto; atualização normal preserva os dados locais.
+- **Atualização de versão:** a tela de novidades aparece uma única vez, depois de completar a configuração quando aplicável; pode ser reaberta pelas Configurações. Quem veio de versão antiga sem marcador de leitura verá as novidades uma vez na alpha.9.
+- **Menu discreto de engrenagem:** refazer wizard (mantendo orçamento antigo até concluir), carregar exemplo de R$ 3.000, limpar com confirmação (reinicia wizard), novidades e Sobre.
+- **Sobre:** nome e versão, três últimas atualizações pela mesma fonte de dados da tela de novidades, desenvolvedor Adriedson Lemos, e-mail `drilemoz@gmail.com`, copiar endereço e abrir app de e-mail instalado.
+- As novas preferências de controle de novidades ficam no mesmo SharedPreferences privado; JSON de orçamento continua no schema 4 e nenhuma chave de assinatura foi alterada.
+- Não há backup/restauração; não desinstale o APK atual sem considerar a perda de dados. Para atualizações, use uma assinatura compatível.
 
 ## Assistente inicial redesenhado — alpha.8
 
@@ -13,12 +22,12 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 - Wizard inclui **VR/VA como crédito usado**, plano de saúde, desconto de VR/VA no contracheque, outros descontos CLT e vale-transporte, com cálculo único e sem duplicação.
 - Moradia já inclui **aluguel, condomínio e IPTU**, com periodicidade mensal/anual e conversão para equivalente mensal. Contas de energia, água, internet e celular entram no fluxo.
 - Lista discreta de produtos essenciais sem preços fictícios. Mercado estimado continua válido até que a lista seja totalmente preenchida.
-- Schema JSON **4**, retrocompatível com os dados v1, v2 e v3. Contém escala/dias selecionados e mês de referência; não altera pacote nem assinatura Release. Usuários existentes não são forçados a refazer o wizard: use menu `$` → Refazer configuração guiada.
+- Schema JSON **4**, retrocompatível com os dados v1, v2 e v3. Contém escala/dias selecionados e mês de referência; não altera pacote nem assinatura Release. Usuários existentes não são forçados a refazer o wizard: use engrenagem → Refazer configuração guiada.
 - A simulação de INSS e IRRF 2026 é simplificada para CLT. Rendas MEI/PJ/autônomas/servidores não recebem descontos CLT arbitrários. Confira o holerite real.
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.8-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.9-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -45,7 +54,7 @@ A configuração é opcional e não interfere nos cálculos de salário nem nos 
 
 Com base nas capturas enviadas do app instalado, todas as categorias foram convertidas de telas completas para **painéis flutuantes inferiores** (`ModalBottomSheet`) que abrem sobre o orçamento e podem ser fechados pelo botão ×, gesto ou voltar. Os formulários e confirmações agora usam diálogos com cantos arredondados e ações agrupadas. Os detalhes continuam editáveis e o total é atualizado em tempo real.
 
-A tela inicial foi redesenhada com um painel de saldo e uma grade compacta de seis categorias. As ações **Carregar exemplo** e **Limpar dados** não ocupam mais o rodapé; ficam dentro do menu acessado pelo pequeno ícone `$` no cabeçalho, que também exibe o nome e a versão do aplicativo. A opção de apagar dados continua exigindo confirmação.
+A tela inicial foi redesenhada com um painel de saldo e uma grade compacta de seis categorias. Na alpha.4, as ações **Carregar exemplo** e **Limpar dados** deixaram o rodapé e foram para o ícone `$`. A partir da alpha.9, ficam na engrenagem de Configurações, junto de Sobre e Novidades. Apagar dados ainda exige confirmação.
 
 **Na alpha.4, os dados foram preservados:** mesmo ID do aplicativo, mesmo schema de JSON e preferências; apenas apresentação e navegação foram alteradas. Vale-transporte, alimentação, reserva e campos financeiros mantêm os cálculos da alpha.3. Não foi realizada compilação Android completa neste ambiente, portanto o novo layout e eventuais incompatibilidades de Compose ainda precisam ser validados no GitHub Actions e no dispositivo.
 
@@ -83,7 +92,7 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.8-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.9-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.

@@ -1,5 +1,10 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.9 (31/10/2026)
+
+Engrenagem no cabeçalho substitui o botão `$`. Novo painel Configurações com refazer wizard sem perda imediata dos dados, exemplo de orçamento, limpeza confirmada que reinicia o wizard, Novidades e Sobre. Tela de novidades exclusiva da atualização, exibida uma vez por versão, com histórico reutilizado na seção Sobre. Nome e contato do desenvolvedor (Adriedson Lemos, drilemoz@gmail.com), botão copiar e envio para app de e-mail. Preferências persistidas e início limpo via wizard; manutenção do JSON schema 4, assinatura, workflow e todos os cálculos.
+
+
 ## 0.1.0-alpha.8 (31/10/2026)
 
 Redesign do wizard para 11 etapas sem rolagem, cartões selecionáveis, cabeçalho gradiente e resumo do orçamento. Formatação monetária durante a digitação com seleção do valor anterior ao focar, sem deslocamento automático de centavos. Calendário de trabalho com semana padrão, escala 12×36 e marcação manual de datas; apuração de dias para o mês selecionado integrada ao transporte. Etapa inicial de benefícios/descontos: VA/VR utilizado, desconto de vale-alimentação na folha, plano de saúde e outros descontos CLT. Moradia com aluguel mensal/anual, condomínio e IPTU mensal/anual; contas domésticas já no assistente. Alimentação com estimativa, refeições e lista de essenciais sem preços inventados. Persistência schema 4 retrocompatível com schema 1–3, mantendo package ID, Secrets e chave de assinatura. Testes locais de domínio (20) e análise PSI de Kotlin; compilação Android completa e validação de tela/teclado ainda pendentes.

@@ -21,10 +21,7 @@ import androidx.compose.ui.unit.sp
 import br.com.quantosobra.domain.*
 
 @Composable
-fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Budget) -> Unit, onRestartWizard: () -> Unit) {
-    var optionsDialog by remember { mutableStateOf(false) }
-    var exampleDialog by remember { mutableStateOf(false) }
-    var clearDialog by remember { mutableStateOf(false) }
+fun Dashboard(budget: Budget, onNavigate: (String) -> Unit) {
     val income = BudgetMath.salaryNet(budget)
     val expenses = BudgetMath.expenses(budget)
     val available = BudgetMath.availableAfterReserve(budget)
@@ -54,12 +51,12 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
                                 fontWeight = FontWeight.ExtraBold)
                             Text("Sua vida financeira, mais clara.", color = Color(0xFFEADCF9), fontSize = 11.sp)
                         }
-                        Surface(onClick = { optionsDialog = true },
+                        Surface(onClick = { onNavigate("settings") },
                             shape = CircleShape,
                             color = Color.White.copy(alpha = 0.16f),
-                            modifier = Modifier.size(42.dp).semantics { contentDescription = "Opções e informações do aplicativo" }) {
+                            modifier = Modifier.size(42.dp).semantics { contentDescription = "Abrir configurações" }) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("$", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                SettingsGearIcon()
                             }
                         }
                     }
@@ -147,47 +144,7 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
         }
     }
 
-    if (optionsDialog) {
-        Page("Seu espaço", "Preferências e informações do aplicativo", { optionsDialog = false }) {
-            SurfaceCard {
-                Text("Quanto Sobra?", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                Text("Versão 0.1.0-alpha.8", fontSize = 12.sp, color = Muted)
-                HorizontalDivider(color = Lilac)
-                Text("Simule seu orçamento com privacidade. Tudo fica neste dispositivo.", fontSize = 13.sp, color = Muted)
-                OutlinedButton(onClick = { optionsDialog = false; onRestartWizard() },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-                    Text("Refazer configuração guiada")
-                }
-                AppButton("Carregar exemplo de R$ 3.000") { optionsDialog = false; exampleDialog = true }
-                OutlinedButton(onClick = { optionsDialog = false; clearDialog = true },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-                    Text("Limpar meus dados", color = Negative)
-                }
-            }
-            Hint("O exemplo substitui os dados atuais. A limpeza exige confirmação.")
-        }
-    }
 
-    if (exampleDialog) {
-        ModernDialog("Carregar simulação?", { exampleDialog = false }, "Substituir", {
-            onBudgetChange(Budget(
-                netSalaryCents = 300_000, rentCents = 135_000, foodOutsideCents = 80_000,
-                electricityCents = 8_000, waterCents = 6_000,
-                internetCents = 10_000, mobileCents = 3_000,
-                transport = TransportConfig(570, 2, 22, TransportMode.CLT, 300_000)
-            ))
-            exampleDialog = false
-        }) {
-            Hint("Todos os valores atuais serão substituídos pelo exemplo de R$ 3.000. Os produtos e despesas cadastrados também serão removidos.")
-        }
-    }
-    if (clearDialog) {
-        ModernDialog("Apagar orçamento?", { clearDialog = false }, "Apagar", {
-            onBudgetChange(Budget()); clearDialog = false
-        }, destructive = true) {
-            Hint("Esta ação remove todos os valores e produtos cadastrados. Não pode ser desfeita.")
-        }
-    }
 }
 
 @Composable
@@ -213,5 +170,29 @@ private fun CategoryTile(icon: String, title: String, subtitle: String, total: L
                     fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+    }
+}
+
+
+@Composable
+private fun SettingsGearIcon() {
+    androidx.compose.foundation.Canvas(Modifier.size(23.dp)) {
+        val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+        val outer = size.minDimension * .39f
+        val inner = size.minDimension * .23f
+        for (i in 0 until 8) {
+            val a = Math.PI * i / 4.0
+            val start = androidx.compose.ui.geometry.Offset(
+                center.x + kotlin.math.cos(a).toFloat() * outer * .80f,
+                center.y + kotlin.math.sin(a).toFloat() * outer * .80f
+            )
+            val finish = androidx.compose.ui.geometry.Offset(
+                center.x + kotlin.math.cos(a).toFloat() * outer * 1.12f,
+                center.y + kotlin.math.sin(a).toFloat() * outer * 1.12f
+            )
+            drawLine(Color.White, start, finish, strokeWidth = 3.2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        }
+        drawCircle(Color.White, outer)
+        drawCircle(Color(0xFF713AA0), inner)
     }
 }
