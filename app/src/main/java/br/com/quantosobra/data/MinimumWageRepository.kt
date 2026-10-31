@@ -15,7 +15,8 @@ import kotlinx.coroutines.withContext
 class MinimumWageRepository(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("wage_reference_v1", Context.MODE_PRIVATE)
     companion object {
-        const val ENDPOINT = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1619/dados/ultimos/24?formato=json"
+        // O BCB limita /ultimos/N a 20 observações; 12 é suficiente para este dado mensal.
+        const val ENDPOINT = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1619/dados/ultimos/12?formato=json"
     }
 
     fun current(): MinimumWage = MinimumWage(

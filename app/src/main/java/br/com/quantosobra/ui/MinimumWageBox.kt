@@ -6,6 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun MinimumWageBox(applyToSalary: (Long) -> Unit, compact: Boolean = false) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val repo = remember(context) { MinimumWageRepository(context) }
     val scope = rememberCoroutineScope()
     var reference by remember { mutableStateOf(repo.current()) }
@@ -45,7 +47,16 @@ fun MinimumWageBox(applyToSalary: (Long) -> Unit, compact: Boolean = false) {
                         scope.launch {
                             val result = repo.consultOnline()
                             result.onSuccess { reference = it; message = "Referência atualizada. Seu salário não foi alterado." }
-                                .onFailure { message = "Consulta falhou. Referência offline mantida." }
+                                .onFailure { err ->
+                                    val error = err.message.orEmpty()
+                                    val detail = when {
+                                        error.startsWith("HTTP ") -> " (${error.take(8)})"
+                                        err is java.net.SocketTimeoutException -> " (tempo esgotado)"
+                                        err is java.net.UnknownHostException -> " (sem conexão)"
+                                        else -> ""
+                                    }
+                                    message = "Consulta indisponível$detail. Referência offline mantida."
+                                }
                             loading = false
                         }
                     }
@@ -59,7 +70,11 @@ fun MinimumWageBox(applyToSalary: (Long) -> Unit, compact: Boolean = false) {
                 contentPadding = PaddingValues(horizontal = 3.dp), shape = RoundedCornerShape(12.dp)) {
                 Text("Alterar", fontSize = 10.sp)
             }
-            Button(onClick = { applyToSalary(reference.cents) }, modifier = Modifier.weight(.65f).height(38.dp),
+            Button(onClick = {
+                focusManager.clearFocus(force = true)
+                applyToSalary(reference.cents)
+                message = "${Money.format(reference.cents)} aplicado ao campo de salário bruto."
+            }, modifier = Modifier.weight(.65f).height(38.dp),
                 contentPadding = PaddingValues(horizontal = 3.dp), shape = RoundedCornerShape(12.dp)) {
                 Text("Usar", fontSize = 10.sp)
             }

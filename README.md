@@ -2,7 +2,13 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.11` · **versionCode:** `11` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.12` · **versionCode:** `12` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Botão Usar + consulta corrigidos — alpha.12
+
+- **Usar** preenche imediatamente o campo **Salário bruto mensal** no wizard e na central de salário, recalculando INSS, IRRF e líquido. O campo é sincronizado mesmo se conservar foco após fechar o teclado; aparece uma confirmação em texto. A referência não é aplicada automaticamente durante consulta ou edição manual.
+- Corrigida a consulta ao SGS 1619 do Banco Central: o endpoint anterior solicitava 24 registros, além do limite de 20 do BCB; agora solicita 12. Falhas continuam mantendo a referência offline, com diagnóstico básico de HTTP, indisponibilidade de rede ou timeout.
+- `versionCode 12`, pacote, dados, permissões e assinatura preservados. Compilação Android e teste de rede em aparelho ainda pendentes.
 
 ## Salário mínimo online e correção monetária — alpha.11
 
@@ -46,7 +52,7 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.11-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.12-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -111,7 +117,7 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.11-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.12-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.

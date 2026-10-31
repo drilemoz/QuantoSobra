@@ -1,7 +1,7 @@
 # Versionamento — Quanto Sobra?
 
-- Atual: `0.1.0-alpha.11`, `versionCode 11`.
-- Próxima alteração: `0.1.0-alpha.11`, `versionCode 11`.
+- Atual: `0.1.0-alpha.12`, `versionCode 12`.
+- Próxima alteração: `0.1.0-alpha.13`, `versionCode 13`.
 - Pacote fixo: `br.com.quantosobra`.
 - Sincronizar Gradle, workflow Artifact, README, CHANGELOG, RELEASE_NOTES, docs/VALIDATION e interface.
 - Dados antigos em `SharedPreferences` `quanto_sobra_v1` preservados. Schema 5 inclui `workType`, `rentPeriod`, `iptuPeriod`, `foodEstimate`, transporte por modalidade. JSON v1/v2/v3 usa defaults compatíveis.

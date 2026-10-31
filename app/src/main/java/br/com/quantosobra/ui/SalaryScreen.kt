@@ -29,6 +29,7 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     var deductionPercentMode by remember { mutableStateOf(false) }
     var deductionBase by remember { mutableStateOf("salary") }
     var showRules by remember { mutableStateOf(false) }
+    var salaryExternalRevision by remember { mutableIntStateOf(0) }
     val addNew = {
         selectedDeduction = null
         deductionName = ""
@@ -62,10 +63,14 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                     { change(b.copy(netSalaryCents = it)) })
                 Hint("Use o valor que cai na conta depois dos descontos. O app conserva seus dados anteriores e evita descontar o transporte já pago na folha.")
             } else {
-                FieldAmount("Salário bruto mensal", s.grossCents, { update(s.copy(grossCents = it)) })
+                FieldAmount("Salário bruto mensal", s.grossCents, { update(s.copy(grossCents = it)) },
+                    externalValueRevision = salaryExternalRevision)
                 Hint("Para empregado CLT com um único vínculo e salário mensal fixo. Esta é uma estimativa, não substitui o holerite.")
                 HorizontalDivider(color = Lilac)
-                MinimumWageBox(applyToSalary = { update(s.copy(grossCents = it)) })
+                MinimumWageBox(applyToSalary = {
+                    update(s.copy(grossCents = it))
+                    salaryExternalRevision++
+                })
                 Hint("O mínimo é uma referência BRUTA, não o valor líquido depois do INSS. Só muda seu salário se você tocar em Usar.")
             }
         }

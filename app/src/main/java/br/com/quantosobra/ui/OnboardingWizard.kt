@@ -47,6 +47,7 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
     val t = budget.transport
     val s = budget.salary
     val keyboard = LocalSoftwareKeyboardController.current
+    var salaryExternalRevision by remember { mutableIntStateOf(0) }
     var showSalaryRules by remember { mutableStateOf(false) }
     var chooseEssential by remember { mutableStateOf(false) }
     val set: (Budget) -> Unit = { budget = it }
@@ -130,7 +131,7 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                             if (clt) s.grossCents else budget.netSalaryCents, {
                                 set(if (clt) budget.copy(salary = s.copy(grossCents = it, mode = SalaryMode.GROSS))
                                 else budget.copy(netSalaryCents = it, salary = s.copy(mode = SalaryMode.NET)))
-                            }, compact = true)
+                            }, compact = true, externalValueRevision = salaryExternalRevision)
                         if (!imeVisible) {
                             HorizontalDivider(color = Lilac)
                             if (clt) {
@@ -144,7 +145,10 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                     }
                     if (clt && !imeVisible) WizardPanel {
                         MinimumWageBox(compact = true, applyToSalary = { minimum ->
+                            // Atualiza o orçamento e força a exibição do valor no campo,
+                            // mesmo se o campo ainda conservava foco após fechar o teclado.
                             set(budget.copy(salary = s.copy(grossCents = minimum, mode = SalaryMode.GROSS)))
+                            salaryExternalRevision++
                         })
                         Text("Mínimo nacional BRUTO. O líquido é menor devido aos descontos indicados acima.",
                             color = Muted, fontSize = 10.sp)

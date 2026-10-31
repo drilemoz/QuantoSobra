@@ -1,5 +1,11 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.12 (31/10/2026)
+
+- Corrigido o botão **Usar** da referência do salário mínimo: sincroniza o texto do campo de salário bruto no wizard e na central de salário, mesmo após campo conservar foco; recalcula automaticamente o contracheque e confirma a aplicação.
+- Corrigida falha determinística do endpoint SGS 1619 que solicitava 24 observações, excedendo o máximo de 20; agora solicita 12. Mensagem de falha fornece motivo básico sem perder o valor offline.
+- Versão, workflow, documentação e catálogo de novidades sincronizados. Compatibilidade de dados, pacote e assinatura preservados.
+
 ## 0.1.0-alpha.11 (31/10/2026)
 
 - Integra consulta manual do salário mínimo nacional pelo SGS 1619/BCB, com cache offline, validação de vigência, edição manual e aplicação explícita ao salário.

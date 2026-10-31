@@ -44,7 +44,8 @@ fun SurfaceCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.
 }
 
 @Composable
-fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: String? = null, compact: Boolean = false) {
+fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: String? = null,
+    compact: Boolean = false, externalValueRevision: Int = 0) {
     var editor by remember { mutableStateOf(TextFieldValue(if (cents == 0L) "" else Money.inputGrouped(cents))) }
     var hasFocus by remember { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -54,6 +55,12 @@ fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: Stri
             val shown = if (cents == 0L) "" else Money.inputGrouped(cents)
             editor = TextFieldValue(shown, TextRange(shown.length))
         }
+    }
+    // Ao tocar em "Usar" a edição pode continuar com foco (botões não necessariamente o removem).
+    // Esse sinal externo atualiza o texto sem reformatar a cada tecla digitada normalmente.
+    LaunchedEffect(externalValueRevision) {
+        val shown = if (cents == 0L) "" else Money.inputGrouped(cents)
+        editor = TextFieldValue(shown, TextRange(shown.length))
     }
     Column(verticalArrangement = Arrangement.spacedBy(if (compact) 1.dp else 5.dp)) {
         OutlinedTextField(

@@ -10,8 +10,13 @@ data class ReleaseEntry(
 )
 
 object ReleaseCatalog {
-    const val currentVersion = "0.1.0-alpha.11"
+    const val currentVersion = "0.1.0-alpha.12"
     val recent = listOf(
+        ReleaseEntry("0.1.0-alpha.12", "31/10/2026", "Seu salário, no campo certo", listOf(
+            ReleaseFeature("Botão Usar corrigido", "O salário mínimo escolhido preenche o campo bruto e atualiza os descontos imediatamente."),
+            ReleaseFeature("Consulta online corrigida", "Requisição ao Banco Central respeita o limite da API, mantendo a referência offline se a rede falhar."),
+            ReleaseFeature("Retorno claro", "Uma mensagem confirma quando o valor foi aplicado e informa a causa básica de indisponibilidade.")
+        )),
         ReleaseEntry("0.1.0-alpha.11", "31/10/2026", "Salário explicado, sem surpresas", listOf(
             ReleaseFeature("Consultar salário mínimo", "Consulta a base do Banco Central, pode editar a referência ou aplicá-la ao bruto quando quiser."),
             ReleaseFeature("Entender descontos", "Veja parcelas do INSS por faixa, percentuais e o líquido separado do salário bruto."),
