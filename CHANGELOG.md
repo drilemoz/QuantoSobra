@@ -1,5 +1,9 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.10 (31/10/2026)
+
+Wizard com seletor visual de escalas 5×2, 6×1, 12×36, 4×3 e personalizada, calendário ajustável e apuração automática de dias/folgas; sincronizado também com Transporte. Ajuste de valores digitados em reais com milhar/cursor, sem deslocamento de centavos. Alimentação passa a oferecer escolha de produtos essenciais ou cadastro manual, edição de unidade, quantidade e preço. Contas da casa restritas a água, energia e internet; valores antigos de chip, gás e demais contas realocados visualmente para Outros gastos, sem perda nem duplicação. Transporte acrescenta auxílio fixo e explicação do VT CLT; salário oferece regras informativas de INSS/IRRF/PAT e descontos manuais fixos ou percentuais com base identificada. JSON schema 5 retrocompatível, versionamento e Artifacts sincronizados, assinatura e Secrets existentes preservados. 30 testes locais de domínio aprovados; Gradle/Android completo ainda não executado.
+
 ## 0.1.0-alpha.9 (31/10/2026)
 
 Engrenagem no cabeçalho substitui o botão `$`. Novo painel Configurações com refazer wizard sem perda imediata dos dados, exemplo de orçamento, limpeza confirmada que reinicia o wizard, Novidades e Sobre. Tela de novidades exclusiva da atualização, exibida uma vez por versão, com histórico reutilizado na seção Sobre. Nome e contato do desenvolvedor (Adriedson Lemos, drilemoz@gmail.com), botão copiar e envio para app de e-mail. Preferências persistidas e início limpo via wizard; manutenção do JSON schema 4, assinatura, workflow e todos os cálculos.

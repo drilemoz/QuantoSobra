@@ -1,6 +1,8 @@
 package br.com.quantosobra.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,10 +26,15 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     var showDeductionEditor by remember { mutableStateOf(false) }
     var deductionName by remember { mutableStateOf("") }
     var deductionValue by remember { mutableStateOf("") }
+    var deductionPercentMode by remember { mutableStateOf(false) }
+    var deductionBase by remember { mutableStateOf("salary") }
+    var showRules by remember { mutableStateOf(false) }
     val addNew = {
         selectedDeduction = null
         deductionName = ""
         deductionValue = ""
+        deductionPercentMode = false
+        deductionBase = "salary"
         showDeductionEditor = true
     }
 
@@ -79,7 +86,8 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 }
                 if (s.autoIrrf) FieldCount("Dependentes para IRRF", s.dependents, 0..20,
                     { update(s.copy(dependents = it)) })
-                Hint("INSS e IRRF seguem tabelas oficiais de 2026, com simplificação para salário mensal. Outros vínculos, pensão alimentícia, rendimentos, férias e 13º podem alterar o valor real.")
+                Hint("INSS e IRRF usam tabelas oficiais de 2026, com simplificações para salário mensal.")
+                TextButton(onClick = { showRules = true }) { Text("ⓘ Entenda descontos e percentuais", color = Purple) }
             }
             SurfaceCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -98,12 +106,19 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(d.name, color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(Money.format(d.amountCents), color = Muted, fontSize = 12.sp)
+                            val rate = d.percentBasisPoints
+                            Text(if (rate == null) Money.format(d.amountCents)
+                                else "${rate / 100.0}% de ${if (d.percentBase == "food") "VA/VR" else "salário bruto"}",
+                                color = Muted, fontSize = 12.sp)
                         }
                         TextButton(onClick = {
                             selectedDeduction = d
                             deductionName = d.name
-                            deductionValue = Money.input(d.amountCents)
+                            deductionPercentMode = d.percentBasisPoints != null
+                            deductionBase = d.percentBase
+                            deductionValue = if (d.percentBasisPoints != null)
+                                java.math.BigDecimal.valueOf(d.percentBasisPoints.toLong(), 2).stripTrailingZeros()
+                                    .toPlainString().replace('.', ',') else Money.input(d.amountCents)
                             showDeductionEditor = true
                         }) { Text("Editar") }
                         TextButton(onClick = {
@@ -135,19 +150,22 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     }
 
     if (showDeductionEditor && isGross) {
-        val parsed = Money.parse(deductionValue)
+        val parsed = if (deductionPercentMode) Percentage.parseBasisPoints(deductionValue)?.toLong()
+            else Money.parse(deductionValue)
         ModernDialog(
             title = if (selectedDeduction == null) "Novo desconto" else "Editar desconto",
             onDismiss = { showDeductionEditor = false }, confirmText = "Salvar",
             confirmEnabled = deductionName.trim().isNotEmpty() && parsed != null &&
                 (selectedDeduction != null || s.deductions.size < 100),
             onConfirm = {
-                val amount = Money.parse(deductionValue)
+                val amount = if (deductionPercentMode) Percentage.parseBasisPoints(deductionValue)?.toLong()
+                    else Money.parse(deductionValue)
                 val name = deductionName.trim().take(80)
                 if (amount != null && name.isNotEmpty()) {
                     val entry = PayrollDeduction(
                         selectedDeduction?.id ?: (s.deductions.maxOfOrNull { it.id } ?: 0L) + 1L,
-                        name, amount)
+                        name, if (deductionPercentMode) 0L else amount,
+                        if (deductionPercentMode) amount.toInt() else null, deductionBase)
                     update(s.copy(deductions = if (selectedDeduction == null)
                         (s.deductions + entry).take(100)
                     else s.deductions.map { if (it.id == entry.id) entry else it }))
@@ -158,8 +176,29 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             OutlinedTextField(value = deductionName, onValueChange = { if (it.length <= 80) deductionName = it },
                 modifier = Modifier.fillMaxWidth(), label = { Text("Nome do desconto") }, singleLine = true,
                 shape = RoundedCornerShape(15.dp))
-            CurrencyTextEntry("Valor mensal em R$", deductionValue, { deductionValue = it })
-            Hint("Ex.: plano de saúde R$ 80 ou vale-refeição R$ 30. Informe somente a quantia realmente descontada no contracheque.")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = !deductionPercentMode, onClick = { deductionPercentMode = false; deductionValue = "" },
+                    label = { Text("Valor (R$)") })
+                FilterChip(selected = deductionPercentMode, onClick = { deductionPercentMode = true; deductionValue = "" },
+                    label = { Text("Percentual (%)") })
+            }
+            if (deductionPercentMode) {
+                OutlinedTextField(deductionValue, { if (it.length <= 7) deductionValue = it },
+                    label = { Text("Percentual, de 0 a 100") }, suffix = { Text("%") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = RoundedCornerShape(15.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = deductionBase == "salary", onClick = { deductionBase = "salary" },
+                        label = { Text("Do salário bruto") })
+                    FilterChip(selected = deductionBase == "food", onClick = { deductionBase = "food" },
+                        label = { Text("Do VA/VR") })
+                }
+                Hint("O percentual informado será recalculado quando a base mudar. É uma configuração manual, não um desconto previsto para todas as empresas.")
+            } else CurrencyTextEntry("Valor mensal em R$", deductionValue, { deductionValue = it })
+            Hint("Informe apenas o que sua empresa realmente desconta. O vale-transporte já vem da tela Transporte.")
         }
     }
+    if (showRules) PayrollRulesDialog { showRules = false }
 }
+

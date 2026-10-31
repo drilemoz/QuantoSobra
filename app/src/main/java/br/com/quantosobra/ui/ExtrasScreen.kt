@@ -20,6 +20,12 @@ fun ExtrasScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     Page("Outras despesas", "Saúde, lazer, roupas, parcelas e mais", back) {
         SectionTotal("Total mensal de outras despesas", BudgetMath.extras(b))
         SurfaceCard {
+            Text("Contas adicionais", style = MaterialTheme.typography.titleMedium)
+            FieldAmount("Celular / chip", b.mobileCents, { change(b.copy(mobileCents = it)) })
+            FieldAmount("Gás (média mensal)", b.gasCents, { change(b.copy(gasCents = it)) })
+            FieldAmount("Outras contas fixas", b.otherBillsCents, { change(b.copy(otherBillsCents = it)) })
+        }
+        SurfaceCard {
             Text("Despesas cadastradas", style = MaterialTheme.typography.titleMedium)
             Hint("Adicione cada gasto mensal. Para móveis comprados em parcelas, registre o valor mensal da parcela.")
             if (b.extras.isEmpty()) Hint("Sua lista está vazia.")
@@ -86,7 +92,7 @@ private fun ExtraDialog(initial: ExtraExpense?, dismiss: () -> Unit,
                 }
             }
         }
-        OutlinedTextField(amount, { if (it.length <= 19) amount = it },
+        OutlinedTextField(amount, { if (it.length <= 19) amount = Money.liveInput(it) },
             modifier = Modifier.fillMaxWidth(), label = { Text("Valor mensal") },
             prefix = { Text("R$ ") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

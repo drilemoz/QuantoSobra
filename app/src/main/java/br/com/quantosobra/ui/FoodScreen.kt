@@ -17,6 +17,8 @@ import br.com.quantosobra.domain.*
 @Composable
 fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     var showAdd by remember { mutableStateOf(false) }
+    var showChoices by remember { mutableStateOf(false) }
+    var showEssentials by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<FoodProduct?>(null) }
     Page("Alimentação", "O custo real do seu supermercado", back) {
         SectionTotal("Pago com dinheiro no mês", BudgetMath.foodPaidFromCash(b))
@@ -42,17 +44,8 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 Text("${b.foodProducts.size} itens", color = Muted, fontSize = 12.sp)
             }
             Hint("Informe o preço por unidade e quanto consome no mês. Ex.: arroz R$ 8/kg × 5 kg.")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = {
-                    val current = b.foodProducts
-                    val essentials = listOf("Arroz", "Feijão", "Óleo", "Sal", "Ovos", "Macarrão", "Leite", "Café")
-                    val existing = current.map { it.name.trim().lowercase(java.util.Locale.ROOT) }.toSet()
-                    val names = essentials.filter { it.lowercase(java.util.Locale.ROOT) !in existing }
-                        .take((500 - current.size).coerceAtLeast(0))
-                    var id = (current.maxOfOrNull { it.id } ?: 0L)
-                    val added = names.map { FoodProduct(++id, it, 0L, 100) }
-                    if (added.isNotEmpty()) change(b.copy(foodProducts = current + added))
-                }) { Text("＋ Essenciais", fontSize = 12.sp) }
+            OutlinedButton(onClick = { showEssentials = true }, shape = RoundedCornerShape(16.dp)) {
+                Text("＋ Escolher produtos essenciais", fontSize = 12.sp)
             }
             if (b.foodEstimateCents > 0L && b.foodProducts.any { it.unitPriceCents == 0L })
                 Hint("Há produtos sem preço. A estimativa continua protegendo o orçamento; não são valores de mercado pesquisados.")
@@ -64,7 +57,7 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f).clickable { editing = p }) {
                             Text(p.name, fontWeight = FontWeight.SemiBold)
-                            Text("${Money.format(p.unitPriceCents)} × ${Money.quantityInput(p.quantityHundredths)}",
+                            Text("${Money.format(p.unitPriceCents)}/${p.unit} × ${Money.quantityInput(p.quantityHundredths)} ${p.unit}",
                                 color = Muted, fontSize = 12.sp)
                         }
                         Column(horizontalAlignment = Alignment.End) {
@@ -76,24 +69,42 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                     }
                 }
             }
-            AppButton("+ Adicionar produto") { showAdd = true }
+            AppButton("+ Adicionar produto") { showChoices = true }
             HorizontalDivider(color = Lilac)
             ValueLine("Subtotal supermercado", BudgetMath.foodMarket(b), emphasize = true)
         }
         Hint("Uma lista de planejamento mensal: não há compras automáticas nem acesso à internet.")
     }
 
+    if (showChoices) ModernDialog("Adicionar à lista", { showChoices = false }, "Escolher essenciais", {
+        showChoices = false; showEssentials = true
+    }) {
+        Text("Você pode cadastrar um produto novo ou selecionar itens básicos para preencher depois.",
+            color = Muted, fontSize = 13.sp)
+        OutlinedButton(onClick = { showChoices = false; showAdd = true }, modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(15.dp)) { Text("＋ Cadastrar produto manualmente") }
+    }
+    if (showEssentials) EssentialsPicker(
+        currentNames = b.foodProducts.map { it.name }.toSet(),
+        dismiss = { showEssentials = false },
+        apply = { selected ->
+            val newItems = EssentialProducts.add(b.foodProducts, selected)
+            change(b.copy(foodProducts = newItems))
+            showEssentials = false
+        }
+    )
+
     if (showAdd || editing != null) {
         ProductDialog(
             initial = editing,
             dismiss = { showAdd = false; editing = null },
-            save = { name, price, qty ->
+            save = { name, price, qty, unit ->
                 val current = editing
                 val items = if (current == null) {
-                    b.foodProducts + FoodProduct((b.foodProducts.maxOfOrNull { it.id } ?: 0) + 1, name, price, qty)
+                    b.foodProducts + FoodProduct((b.foodProducts.maxOfOrNull { it.id } ?: 0) + 1, name, price, qty, unit)
                 } else {
                     b.foodProducts.map { if (it.id == current.id) current.copy(name = name, unitPriceCents = price,
-                        quantityHundredths = qty) else it }
+                        quantityHundredths = qty, unit = unit) else it }
                 }
                 change(b.copy(foodProducts = items))
                 showAdd = false; editing = null
@@ -104,7 +115,7 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
 
 @Composable
 private fun ProductDialog(initial: FoodProduct?, dismiss: () -> Unit,
-                          save: (String, Long, Int) -> Unit) {
+                          save: (String, Long, Int, String) -> Unit) {
     var name by remember(initial?.id) { mutableStateOf(initial?.name ?: "") }
     var price by remember(initial?.id) {
         mutableStateOf(if ((initial?.unitPriceCents ?: 0L) == 0L) "" else Money.input(initial!!.unitPriceCents))
@@ -112,6 +123,8 @@ private fun ProductDialog(initial: FoodProduct?, dismiss: () -> Unit,
     var qty by remember(initial?.id) {
         mutableStateOf(Money.quantityInput(initial?.quantityHundredths ?: 100))
     }
+    var unit by remember(initial?.id) { mutableStateOf(initial?.unit ?: "un") }
+    var unitDropdown by remember { mutableStateOf(false) }
     val cents = Money.parse(price)
     val quantity = Money.quantityHundredths(qty)
     ModernDialog(
@@ -119,12 +132,22 @@ private fun ProductDialog(initial: FoodProduct?, dismiss: () -> Unit,
         onDismiss = dismiss,
         confirmText = "Salvar",
         confirmEnabled = name.isNotBlank() && cents != null && quantity != null,
-        onConfirm = { if (cents != null && quantity != null) save(name.trim(), cents, quantity) }
+        onConfirm = { if (cents != null && quantity != null) save(name.trim(), cents, quantity, unit) }
     ) {
         OutlinedTextField(name, { if (it.length <= 80) name = it },
             modifier = Modifier.fillMaxWidth(), label = { Text("Nome do produto") },
             singleLine = true, shape = RoundedCornerShape(15.dp))
         CurrencyTextEntry("Preço por unidade", price, { price = it })
+        Box {
+            OutlinedButton(onClick = { unitDropdown = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("Unidade: $unit  ▾")
+            }
+            DropdownMenu(expanded = unitDropdown, onDismissRequest = { unitDropdown = false }) {
+                listOf("un", "kg", "g", "L", "pacote", "garrafa", "dúzia").forEach { item ->
+                    DropdownMenuItem(text = { Text(item) }, onClick = { unit = item; unitDropdown = false })
+                }
+            }
+        }
         OutlinedTextField(qty, { if (it.length <= 10) qty = it },
             modifier = Modifier.fillMaxWidth(), label = { Text("Quantidade por mês") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,

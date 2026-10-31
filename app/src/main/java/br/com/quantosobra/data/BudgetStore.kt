@@ -52,7 +52,8 @@ class BudgetStore(context: Context) {
             if (name.isBlank()) null else FoodProduct(
                 id = p.optLong("id", index.toLong()), name = name,
                 unitPriceCents = p.nonNegativeLong("price"),
-                quantityHundredths = p.nonNegativeInt("qty", 100, 100_000)
+                quantityHundredths = p.nonNegativeInt("qty", 100, 100_000),
+                unit = p.optString("unit", "un").take(20).ifBlank { "un" }
             )
         }
         val others = j.optJSONArray("extras") ?: JSONArray()
@@ -74,7 +75,9 @@ class BudgetStore(context: Context) {
             val name = item.optString("name").trim().take(80)
             if (name.isBlank()) null else PayrollDeduction(
                 id = item.optLong("id", i.toLong()), name = name,
-                amountCents = item.nonNegativeLong("value")
+                amountCents = item.nonNegativeLong("value"),
+                percentBasisPoints = item.optInt("percentBP", -1).takeIf { it in 0..10_000 },
+                percentBase = if (item.optString("percentBase") == "food") "food" else "salary"
             )
         }
         return Budget(
@@ -114,6 +117,7 @@ class BudgetStore(context: Context) {
                     ?: TransportMode.NONE,
                 basicSalaryCents = t.nonNegativeLong("basicSalary"),
                 companyPercent = t.nonNegativeInt("companyPercent", 50, 100),
+                companyFixedCents = t.nonNegativeLong("companyFixed"),
                 deductedFromNetSalary = t.optBoolean("alreadyDeducted", false),
                 customOnPayroll = t.optBoolean("customOnPayroll", false),
                 workSchedule = WorkSchedule.entries.find { it.name == t.optString("workSchedule") }
@@ -129,7 +133,7 @@ class BudgetStore(context: Context) {
     }
 
     private fun toJson(b: Budget): JSONObject = JSONObject().apply {
-        put("schema", 4)
+        put("schema", 5)
         put("workType", b.workType.name)
         put("rentPeriod", b.rentPeriod.name)
         put("iptuPeriod", b.iptuPeriod.name)
@@ -143,6 +147,8 @@ class BudgetStore(context: Context) {
             put("deductions", JSONArray().apply {
                 b.salary.deductions.forEach { d -> put(JSONObject().apply {
                     put("id", d.id); put("name", d.name); put("value", d.amountCents)
+                    d.percentBasisPoints?.let { put("percentBP", it) }
+                    put("percentBase", d.percentBase)
                 }) }
             })
         })
@@ -162,7 +168,7 @@ class BudgetStore(context: Context) {
         put("food", JSONArray().apply {
             b.foodProducts.forEach { p -> put(JSONObject().apply {
                 put("id", p.id); put("name", p.name); put("price", p.unitPriceCents)
-                put("qty", p.quantityHundredths)
+                put("qty", p.quantityHundredths); put("unit", p.unit)
             }) }
         })
         put("extras", JSONArray().apply {
@@ -180,6 +186,7 @@ class BudgetStore(context: Context) {
             put("mode", b.transport.mode.name)
             put("basicSalary", b.transport.basicSalaryCents)
             put("companyPercent", b.transport.companyPercent)
+            put("companyFixed", b.transport.companyFixedCents)
             put("alreadyDeducted", b.transport.deductedFromNetSalary)
             put("customOnPayroll", b.transport.customOnPayroll)
             put("workSchedule", b.transport.workSchedule.name)

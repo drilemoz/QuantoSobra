@@ -71,7 +71,8 @@ fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: Stri
             onValueChange = { newValue ->
                 if (newValue.text.length <= 19) {
                     val shown = Money.liveInput(newValue.text)
-                    editor = TextFieldValue(shown, TextRange(shown.length))
+                    editor = TextFieldValue(shown, TextRange(Money.caretAfterFormatting(
+                        newValue.text, newValue.selection.start, shown)))
                     Money.parse(shown)?.let(onChange)
                 }
             },

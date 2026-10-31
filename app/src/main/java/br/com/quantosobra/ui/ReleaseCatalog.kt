@@ -10,8 +10,14 @@ data class ReleaseEntry(
 )
 
 object ReleaseCatalog {
-    const val currentVersion = "0.1.0-alpha.9"
+    const val currentVersion = "0.1.0-alpha.10"
     val recent = listOf(
+        ReleaseEntry("0.1.0-alpha.10", "31/10/2026", "Seu trabalho, seus números", listOf(
+            ReleaseFeature("Escalas e calendário", "Visual com cartões 5×2, 6×1, 12×36, 4×3 ou personalizado, com dias recalculados ao toque."),
+            ReleaseFeature("Compras organizadas", "Escolha produtos essenciais ou cadastre e edite preços, quantidades e unidades."),
+            ReleaseFeature("Contas e salários", "Celular e gás em Outros gastos; orientações legais e descontos manuais em valor ou percentual."),
+            ReleaseFeature("Dinheiro sem confusão", "A entrada 900 significa R$ 900,00, preservando reais durante a digitação.")
+        )),
         ReleaseEntry("0.1.0-alpha.9", "31/10/2026", "O Quanto Sobra? evoluiu.", listOf(
             ReleaseFeature("Primeiro acesso guiado", "O assistente aparece em instalações novas e após limpar os dados."),
             ReleaseFeature("Configurações renovadas", "Todas as ações agora ficam na engrenagem do cabeçalho."),
@@ -21,9 +27,5 @@ object ReleaseCatalog {
             ReleaseFeature("Wizard financeiro", "Onze etapas, calendário de trabalho e benefícios integrados."),
             ReleaseFeature("Valores bem formatados", "Pontuação de dinheiro durante a digitação e despesas anuais.")
         )),
-        ReleaseEntry("0.1.0-alpha.7", "31/10/2026", "Seu primeiro orçamento guiado", listOf(
-            ReleaseFeature("Passo a passo", "Configuração em etapas sem rolagem, com opção Definir depois."),
-            ReleaseFeature("Contas mais simples", "Aluguel e IPTU anuais, produtos essenciais opcionais.")
-        ))
     )
 }

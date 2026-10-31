@@ -16,7 +16,11 @@ enum class CommuteMode { PUBLIC, PRIVATE, BIKE_WALK, HOME, UNSET }
 data class PayrollDeduction(
     val id: Long,
     val name: String,
-    val amountCents: Long
+    val amountCents: Long,
+    /** Percentual opcional, em centésimos de ponto percentual (1500 = 15%). */
+    val percentBasisPoints: Int? = null,
+    /** 'salary' = salário bruto; 'food' = valor do VA/VR utilizado. */
+    val percentBase: String = "salary"
 )
 
 data class SalaryConfig(
@@ -37,7 +41,9 @@ data class FoodProduct(
     val name: String,
     val unitPriceCents: Long,
     /** 100 = 1 unidade; 250 = 2,5 unidades. */
-    val quantityHundredths: Int
+    val quantityHundredths: Int,
+    /** Unidade apenas descritiva; o preço sempre é por unidade informada. */
+    val unit: String = "un"
 )
 
 enum class OtherCategory(val displayName: String) {
@@ -52,7 +58,7 @@ data class ExtraExpense(
     val amountCents: Long
 )
 
-enum class TransportMode { NONE, CLT, FULL, CUSTOM }
+enum class TransportMode { NONE, CLT, FULL, CUSTOM, FIXED }
 
 data class TransportConfig(
     val fareCents: Long = 0,
@@ -61,6 +67,7 @@ data class TransportConfig(
     val mode: TransportMode = TransportMode.NONE,
     val basicSalaryCents: Long = 0,
     val companyPercent: Int = 50,
+    val companyFixedCents: Long = 0,
     /** Marcar apenas quando o salário líquido informado JÁ descontou o VT. */
     val deductedFromNetSalary: Boolean = false,
     /** Para custeio percentual personalizado: desconto na folha ou pago por fora. */
@@ -117,9 +124,11 @@ object BudgetMath {
     }
     fun food(b: Budget): Long = b.foodOutsideCents + foodMarket(b)
     fun foodPaidFromCash(b: Budget): Long = (food(b) - b.salary.foodBenefitCents).coerceAtLeast(0L)
-    fun bills(b: Budget): Long = b.electricityCents + b.waterCents + b.internetCents +
+    /** Somente água, eletricidade e internet são mostradas em Contas da casa. */
+    fun bills(b: Budget): Long = b.electricityCents + b.waterCents + b.internetCents
+    /** Preserva valores já cadastrados de celular, gás e outras contas no orçamento. */
+    fun extras(b: Budget): Long = b.extras.sumOf { it.amountCents } +
         b.mobileCents + b.gasCents + b.otherBillsCents
-    fun extras(b: Budget): Long = b.extras.sumOf { it.amountCents }
     fun transportGross(t: TransportConfig): Long = when (t.commuteMode) {
         CommuteMode.PUBLIC -> t.fareCents.coerceAtLeast(0) *
             t.ridesPerDay.coerceIn(0, 20) * t.daysPerMonth.coerceIn(0, 31)
@@ -135,6 +144,7 @@ object BudgetMath {
             TransportMode.NONE -> gross
             TransportMode.FULL -> 0L
             TransportMode.CUSTOM -> (gross * (100 - t.companyPercent.coerceIn(0, 100)) + 50L) / 100L
+            TransportMode.FIXED -> (gross - t.companyFixedCents).coerceAtLeast(0L)
             TransportMode.CLT -> {
                 val base = t.basicSalaryCents.takeIf { it > 0L } ?: salaryBasicFallbackCents
                 if (base <= 0L) gross else min(gross, (base * 6L + 50L) / 100L)
@@ -150,7 +160,7 @@ object BudgetMath {
         if (b.salary.mode != SalaryMode.GROSS || b.transport.commuteMode != CommuteMode.PUBLIC) return 0L
         return when (b.transport.mode) {
             TransportMode.CLT -> transportEmployeeCost(b.transport, b.salary.grossCents)
-            TransportMode.CUSTOM -> if (b.transport.customOnPayroll) transportEmployeeCost(b.transport) else 0L
+            TransportMode.CUSTOM, TransportMode.FIXED -> if (b.transport.customOnPayroll) transportEmployeeCost(b.transport) else 0L
             else -> 0L
         }
     }
@@ -226,7 +236,13 @@ object SalaryMath {
         val inss = if (s.autoInss) inss2026(gross) else 0L
         val irrf = if (s.autoIrrf) irrf2026(gross, inss, s.dependents) else 0L
         val transit = BudgetMath.payrollTransport(b)
-        val other = s.deductions.sumOf { it.amountCents.coerceAtLeast(0L) }
+        val other = s.deductions.sumOf { d ->
+            val rate = d.percentBasisPoints?.coerceIn(0, 10_000)
+            if (rate != null) {
+                val basis = if (d.percentBase == "food") s.foodBenefitCents else gross
+                (basis * rate + 5_000L) / 10_000L
+            } else d.amountCents.coerceAtLeast(0L)
+        }
         return SalaryBreakdown(gross, inss, irrf, transit, other,
             gross - inss - irrf - transit - other)
     }
@@ -248,25 +264,37 @@ object Money {
      * Valor monetário continua sendo conferido por parse().
      */
     fun liveInput(raw: String): String {
-        val stripped = raw.replace("R$", "", ignoreCase = true).replace(" ", "")
-        if (stripped.isEmpty()) return ""
-        if (!stripped.matches(Regex("[0-9.,]+"))) return raw
-        val comma = stripped.lastIndexOf(',')
-        val dot = stripped.lastIndexOf('.')
-        val decimalIndex = when {
-            comma >= 0 -> comma
-            dot >= 0 && stripped.count { it == '.' } == 1 &&
-                stripped.length - dot - 1 <= 2 -> dot
+        val value = raw.replace("R$", "", ignoreCase = true).trim().replace(" ", "")
+        if (value.isEmpty()) return ""
+        if (!value.matches(Regex("[0-9.,]+"))) return raw
+        val lastComma = value.lastIndexOf(',')
+        val lastDot = value.lastIndexOf('.')
+        // Vírgula sempre representa decimais; ponto é decimal quando há 1 ou 2 casas.
+        // Um ponto com três dígitos à direita é separador de milhar.
+        val decimal = when {
+            lastComma >= 0 -> lastComma
+            lastDot >= 0 && value.count { it == '.' } == 1 && value.length - lastDot - 1 <= 2 -> lastDot
             else -> -1
         }
-        val whole = (if (decimalIndex >= 0) stripped.substring(0, decimalIndex) else stripped)
-            .filter(Char::isDigit)
-        val fraction = if (decimalIndex >= 0) stripped.substring(decimalIndex + 1)
-            .filter(Char::isDigit).take(2) else ""
-        if (whole.length > 11) return raw
-        val grouping = (whole.trimStart('0').ifEmpty { "0" }).reversed()
+        val integerPart = (if (decimal >= 0) value.take(decimal) else value).filter(Char::isDigit)
+        val fractionalPart = if (decimal >= 0) value.substring(decimal + 1).filter(Char::isDigit).take(2) else ""
+        if (integerPart.length > 11) return raw
+        val grouping = integerPart.trimStart('0').ifEmpty { "0" }.reversed()
             .chunked(3).joinToString(".").reversed()
-        return if (decimalIndex >= 0) "$grouping,$fraction" else grouping
+        return if (decimal >= 0) "$grouping,$fractionalPart" else grouping
+    }
+
+    /** Conserva a posição lógica do cursor quando são inseridos pontos de milhar. */
+    fun caretAfterFormatting(original: String, originalCaret: Int, formatted: String): Int {
+        val before = original.take(originalCaret.coerceIn(0, original.length))
+        val digitsBefore = before.count(Char::isDigit)
+        if (digitsBefore == 0) return 0
+        var count = 0
+        for (i in formatted.indices) if (formatted[i].isDigit()) {
+            count++
+            if (count == digitsBefore) return i + 1
+        }
+        return formatted.length
     }
 
     /** Aceita 1.234,56, 1234.56, 1234 e 5,70. Valores negativos não são aceitos. */

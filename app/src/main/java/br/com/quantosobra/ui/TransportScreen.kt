@@ -39,6 +39,19 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
         }
         if (t.commuteMode == CommuteMode.PUBLIC) {
         SurfaceCard {
+            Text("Seu calendário de trabalho", style = MaterialTheme.typography.titleMedium)
+            WizardCalendar(t, compact = true) { changed ->
+                val month = WorkCalendar.month(changed.workCalendarMonth)
+                val anchor = runCatching { java.time.LocalDate.parse(changed.workAnchorDate) }
+                    .getOrNull() ?: month.atDay(1)
+                val count = WorkCalendar.days(month, changed.workSchedule, changed.workWeekdaysMask,
+                    anchor, WorkCalendar.parseDates(changed.customWorkDates)).size
+                update(changed.copy(daysPerMonth = if (changed.workSchedule == WorkSchedule.MANUAL)
+                    changed.daysPerMonth else count))
+            }
+            Hint("As datas selecionadas atualizam automaticamente o custo das passagens.")
+        }
+        SurfaceCard {
             FieldAmount("Valor de cada passagem", t.fareCents,
                 { update(t.copy(fareCents = it)) })
             FieldCount("Quantas passagens por dia?", t.ridesPerDay, 0..20,
@@ -57,6 +70,8 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 { update(t.copy(mode = it)) })
             TransportOption("Empresa paga uma porcentagem", TransportMode.CUSTOM, t.mode,
                 { update(t.copy(mode = it)) })
+            TransportOption("Empresa paga um valor fixo", TransportMode.FIXED, t.mode,
+                { update(t.copy(mode = it)) })
             if (t.mode == TransportMode.CLT) {
                 FieldAmount("Salário básico (R$)", t.basicSalaryCents,
                     { update(t.copy(basicSalaryCents = it)) },
@@ -68,7 +83,11 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 FieldCount("Percentual pago pela empresa (%)", t.companyPercent, 0..100,
                     { update(t.copy(companyPercent = it)) })
             }
-            if (t.mode == TransportMode.CUSTOM && b.salary.mode == SalaryMode.GROSS) {
+            if (t.mode == TransportMode.FIXED) {
+                FieldAmount("Ajuda mensal da empresa", t.companyFixedCents,
+                    { update(t.copy(companyFixedCents = it)) })
+            }
+            if ((t.mode == TransportMode.CUSTOM || t.mode == TransportMode.FIXED) && b.salary.mode == SalaryMode.GROSS) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = t.customOnPayroll,
                         onCheckedChange = { update(t.copy(customOnPayroll = it)) })
@@ -105,7 +124,7 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 Hint("Esse custo já consta como desconto no salário, sem duplicação no orçamento.")
             }
         }
-        Hint("Simulação informativa: o vale-transporte CLT tem regras específicas, inclusive sobre dias elegíveis, salário básico e acordos aplicáveis. O valor real do contracheque pode ser diferente.")
+        Hint("Lei 7.418/1985: no VT CLT, o trabalhador participa em até 6% do salário básico, limitado ao custo do deslocamento; o excedente é custeado pela empresa. Benefícios superiores podem existir. Confira o holerite.")
     }
 }
 

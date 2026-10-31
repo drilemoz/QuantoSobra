@@ -46,6 +46,28 @@ class SalaryMathTest {
         assertEquals(BudgetMath.availableAfterExpenses(b), BudgetMath.availableAfterExpenses(payroll))
     }
 
+    @Test fun fixedCompanyContributionAndPercentageDeductions() {
+        val t = TransportConfig(fareCents = 500, ridesPerDay = 2, daysPerMonth = 22,
+            mode = TransportMode.FIXED, companyFixedCents = 8_000)
+        assertEquals(14_000L, BudgetMath.transportEmployeeCost(t))
+        assertEquals(0L, BudgetMath.transportEmployeeCost(t.copy(companyFixedCents = 25_000)))
+        val s = SalaryConfig(mode = SalaryMode.GROSS, grossCents = 300_000,
+            autoInss = false, autoIrrf = false, foodBenefitCents = 50_000,
+            deductions = listOf(
+                PayrollDeduction(1, "Saúde", 0, 500, "salary"),
+                PayrollDeduction(2, "VA", 0, 2000, "food")))
+        val b = Budget(salary = s, transport = t.copy(customOnPayroll = true))
+        assertEquals(15_000L + 10_000L, SalaryMath.breakdown(b).otherCents)
+        assertEquals(14_000L, SalaryMath.breakdown(b).transportCents)
+        assertEquals(0L, BudgetMath.transportBudgetCost(b))
+        assertEquals(261_000L, BudgetMath.salaryNet(b))
+        // Valores antes cadastrados continuam entrando no mesmo total, só mudam de categoria.
+        val old = Budget(netSalaryCents = 200_000, mobileCents = 3_000, gasCents = 4_000,
+            otherBillsCents = 1_000, waterCents = 6_000)
+        assertEquals(6_000L, BudgetMath.bills(old))
+        assertEquals(8_000L, BudgetMath.extras(old))
+        assertEquals(14_000L, BudgetMath.expenses(old))
+    }
     @Test fun foodVoucherNotDoubleCountedAndNotCashIncome() {
         val b = Budget(netSalaryCents = 300_000, foodOutsideCents = 50_000,
             salary = SalaryConfig(foodBenefitCents = 20_000))

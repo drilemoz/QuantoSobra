@@ -2,7 +2,18 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.9` · **versionCode:** `9` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.10` · **versionCode:** `10` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Calendário, compras e regras — alpha.10
+
+- **Escalas na etapa do wizard:** cartões 5×2, 6×1, 12×36, 4×3 e Outra, com dias da semana e calendário selecionáveis. A prévia exibe dias trabalhados e folgas do mês; a contagem é ligada ao transporte. Na etapa "Outra", o usuário marca cada dia; na escala semanal, tocar num dia altera o padrão de toda a semana; em 12×36, a data tocada vira referência de plantão. Não presume feriados, férias nem valida legalidade de escalas especiais.
+- **Digitação em reais:** `9` → R$ 9,00; `90` → R$ 90,00; `900` → R$ 900,00, sem deslocamento de centavos; pontuação de milhares durante a digitação e cursor ajustado em campos monetários. Aceita vírgula/ponto decimal de acordo com exemplos.
+- **Alimentação:** botão Adicionar abre escolha entre cadastro manual e seleção de até 10 itens básicos (sem preços inventados). O usuário edita nome, preço por unidade, quantidade mensal e unidade, ou exclui itens. A estimativa mensal é preservada enquanto faltarem preços.
+- **Contas da casa:** somente energia, água e internet. Celular, gás e outras contas preexistentes são exibidos em Outros gastos e continuam somados uma única vez.
+- **Transporte:** custeio integral, pelo trabalhador, vale-transporte CLT, porcentagem da empresa ou auxílio mensal fixo; opção de desconto em folha para custeio personalizado e explicação da Lei 7.418/1985 (regra geral de até 6% do salário básico).
+- **Salário:** pop-up educativo sobre INSS/IRRF 2026, vale-transporte, PAT (participação do trabalhador até 20% do custo direto do benefício) e FGTS (encargo do empregador). Descontos manuais podem ser por valor fixo ou percentual do bruto/VA-VR, com base explícita e recalculada automaticamente.
+- **Persistência:** JSON schema 5, valores anteriores mantidos; `versionCode 10`, `targetSdk 36`, ID e quatro Secrets de assinatura preservados. As novas regras são estimativas; confira sempre o contracheque.
+- **Validação local:** 30 testes do domínio com executor de asserções compatível com JUnit e parser sintático Kotlin. Gradle/Android completo e visual no aparelho pendentes.
 
 ## Novidades e configurações — alpha.9
 
@@ -10,7 +21,7 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 - **Atualização de versão:** a tela de novidades aparece uma única vez, depois de completar a configuração quando aplicável; pode ser reaberta pelas Configurações. Quem veio de versão antiga sem marcador de leitura verá as novidades uma vez na alpha.9.
 - **Menu discreto de engrenagem:** refazer wizard (mantendo orçamento antigo até concluir), carregar exemplo de R$ 3.000, limpar com confirmação (reinicia wizard), novidades e Sobre.
 - **Sobre:** nome e versão, três últimas atualizações pela mesma fonte de dados da tela de novidades, desenvolvedor Adriedson Lemos, e-mail `drilemoz@gmail.com`, copiar endereço e abrir app de e-mail instalado.
-- As novas preferências de controle de novidades ficam no mesmo SharedPreferences privado; JSON de orçamento continua no schema 4 e nenhuma chave de assinatura foi alterada.
+- O orçamento continua em SharedPreferences privados; o schema 5 acrescenta unidade do produto, auxílio fixo de transporte e percentual opcional em descontos, preservando os campos antigos. Nenhuma chave de assinatura foi alterada.
 - Não há backup/restauração; não desinstale o APK atual sem considerar a perda de dados. Para atualizações, use uma assinatura compatível.
 
 ## Assistente inicial redesenhado — alpha.8
@@ -27,7 +38,7 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.9-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.10-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -78,7 +89,7 @@ A alpha.2 muda para `android-actions/setup-android@v4` e instala explicitamente 
 - Salário **líquido ou bruto CLT** com edição na tela inicial e assistente de primeiro acesso.
 - Moradia: aluguel e IPTU com valor mensal ou anual, condomínio mensal.
 - Alimentação: estimativa mensal inicial, itens essenciais opcionais sem preço, cadastro/edição/exclusão de produtos e refeições fora.
-- Contas da casa: energia, água, internet, celular, gás e outras.
+- Contas da casa: energia, água e internet. Celular, gás e outras contas ficam em Outros gastos sem perder valores já registrados.
 - Transporte: transporte público, próprio ou sem deslocamento; passagem, quantidade diária, dias/mês; pagamento próprio, pela empresa integralmente, por percentual customizado ou estimativa CLT de até 6% do salário **básico**.
 - Opção para não descontar vale-transporte duas vezes se já estiver embutido no salário líquido informado.
 - Gastos pessoais: saúde, higiene e limpeza, lazer, roupas, móveis e parcelas, dívidas e outros.
@@ -92,7 +103,7 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.9-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.10-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.
@@ -101,7 +112,7 @@ Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugi
 
 - `domain/WorkCalendar.kt`: escala semanal, 12×36 e dias escolhidos por data.
 - `domain/Budget.kt`: dados, regras de orçamento, dinheiro em centavos, transporte e cálculo de produtos, sem dependência do Android.
-- `data/BudgetStore.kt`: persistência local com JSON schema 4 e leitura retrocompatível.
+- `data/BudgetStore.kt`: persistência local com JSON schema 5 e leitura retrocompatível.
 - `ui/`: wizard compacto, dashboard Compose, modais inferiores, diálogos, campos com formatação monetária em tempo real, tema e componentes reutilizáveis.
 - `MainActivity.kt`: dashboard fixo, estado único e exibição contextual de modais, sem biblioteca de navegação externa.
 

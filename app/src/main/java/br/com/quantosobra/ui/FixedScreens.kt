@@ -49,12 +49,8 @@ fun BillsScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             FieldAmount("Energia elétrica (luz)", b.electricityCents, { change(b.copy(electricityCents = it)) })
             FieldAmount("Água e esgoto", b.waterCents, { change(b.copy(waterCents = it)) })
             FieldAmount("Internet residencial", b.internetCents, { change(b.copy(internetCents = it)) })
-            FieldAmount("Plano de celular / chip", b.mobileCents, { change(b.copy(mobileCents = it)) })
-            FieldAmount("Gás (média por mês)", b.gasCents, { change(b.copy(gasCents = it)) },
-                "Ex.: botijão de R$ 120 que dura 3 meses = R$ 40/mês.")
-            FieldAmount("Outras contas fixas", b.otherBillsCents, { change(b.copy(otherBillsCents = it)) })
         }
-        Hint("As despesas são calculadas automaticamente no painel inicial.")
+        Hint("Celular, gás e outras contas ficam em Outros gastos. Seus valores antigos foram preservados.")
     }
 }
 

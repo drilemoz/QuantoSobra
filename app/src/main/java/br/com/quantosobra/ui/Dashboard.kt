@@ -127,7 +127,7 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit) {
                     CategoryTile("✦", "Alimentação", "Mercado e refeições", BudgetMath.foodPaidFromCash(budget), "food", onNavigate, Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-                    CategoryTile("ϟ", "Contas", "Água, luz e mais", BudgetMath.bills(budget), "bills", onNavigate, Modifier.weight(1f))
+                    CategoryTile("ϟ", "Contas", "Água, luz e internet", BudgetMath.bills(budget), "bills", onNavigate, Modifier.weight(1f))
                     CategoryTile("↗", "Transporte", "Passagens e VT", BudgetMath.transportBudgetCost(budget), "transport", onNavigate, Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
