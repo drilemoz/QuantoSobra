@@ -6,6 +6,27 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.min
 
+/** O modo líquido mantém integralmente os dados de versões anteriores. */
+enum class SalaryMode { NET, GROSS }
+
+data class PayrollDeduction(
+    val id: Long,
+    val name: String,
+    val amountCents: Long
+)
+
+data class SalaryConfig(
+    val mode: SalaryMode = SalaryMode.NET,
+    val grossCents: Long = 0,
+    val autoInss: Boolean = true,
+    val autoIrrf: Boolean = true,
+    val dependents: Int = 0,
+    /** Crédito alimentação que a pessoa pretende efetivamente usar (não é renda em dinheiro). */
+    val foodBenefitCents: Long = 0,
+    val deductions: List<PayrollDeduction> = emptyList()
+)
+
+
 /** Todos os valores monetários são armazenados em centavos (Long). */
 data class FoodProduct(
     val id: Long,
@@ -37,11 +58,14 @@ data class TransportConfig(
     val basicSalaryCents: Long = 0,
     val companyPercent: Int = 50,
     /** Marcar apenas quando o salário líquido informado JÁ descontou o VT. */
-    val deductedFromNetSalary: Boolean = false
+    val deductedFromNetSalary: Boolean = false,
+    /** Para custeio percentual personalizado: desconto na folha ou pago por fora. */
+    val customOnPayroll: Boolean = false
 )
 
 data class Budget(
     val netSalaryCents: Long = 0,
+    val salary: SalaryConfig = SalaryConfig(),
     val rentCents: Long = 0,
     val condominiumCents: Long = 0,
     val iptuCents: Long = 0,
@@ -64,6 +88,7 @@ object BudgetMath {
 
     fun housing(b: Budget): Long = b.rentCents + b.condominiumCents + b.iptuCents
     fun food(b: Budget): Long = b.foodOutsideCents + b.foodProducts.sumOf(::productCost)
+    fun foodPaidFromCash(b: Budget): Long = (food(b) - b.salary.foodBenefitCents).coerceAtLeast(0L)
     fun bills(b: Budget): Long = b.electricityCents + b.waterCents + b.internetCents +
         b.mobileCents + b.gasCents + b.otherBillsCents
     fun extras(b: Budget): Long = b.extras.sumOf { it.amountCents }
@@ -71,14 +96,16 @@ object BudgetMath {
         t.ridesPerDay.coerceIn(0, 20) * t.daysPerMonth.coerceIn(0, 31)
 
     /** Estimativa: limite geral legal de até 6% do salário básico, ou custo menor. */
-    fun transportEmployeeCost(t: TransportConfig): Long {
+    fun transportEmployeeCost(t: TransportConfig, salaryBasicFallbackCents: Long = 0L): Long {
         val gross = transportGross(t)
         return when (t.mode) {
             TransportMode.NONE -> gross
             TransportMode.FULL -> 0L
             TransportMode.CUSTOM -> (gross * (100 - t.companyPercent.coerceIn(0, 100)) + 50L) / 100L
-            TransportMode.CLT -> if (t.basicSalaryCents <= 0) gross
-                else min(gross, (t.basicSalaryCents * 6L + 50L) / 100L)
+            TransportMode.CLT -> {
+                val base = t.basicSalaryCents.takeIf { it > 0L } ?: salaryBasicFallbackCents
+                if (base <= 0L) gross else min(gross, (base * 6L + 50L) / 100L)
+            }
         }
     }
 
@@ -86,10 +113,90 @@ object BudgetMath {
     fun transportFromAvailable(t: TransportConfig): Long =
         if (t.deductedFromNetSalary && t.mode != TransportMode.NONE) 0 else transportEmployeeCost(t)
 
-    fun expenses(b: Budget): Long = housing(b) + food(b) + bills(b) +
-        extras(b) + transportFromAvailable(b.transport)
-    fun availableAfterExpenses(b: Budget): Long = b.netSalaryCents - expenses(b)
+    fun payrollTransport(b: Budget): Long {
+        if (b.salary.mode != SalaryMode.GROSS) return 0L
+        return when (b.transport.mode) {
+            TransportMode.CLT -> transportEmployeeCost(b.transport, b.salary.grossCents)
+            TransportMode.CUSTOM -> if (b.transport.customOnPayroll) transportEmployeeCost(b.transport) else 0L
+            else -> 0L
+        }
+    }
+    fun salaryNet(b: Budget): Long = if (b.salary.mode == SalaryMode.NET) b.netSalaryCents
+        else SalaryMath.breakdown(b).netCents
+    fun transportBudgetCost(b: Budget): Long = if (b.salary.mode == SalaryMode.NET)
+        transportFromAvailable(b.transport)
+    else transportEmployeeCost(b.transport, b.salary.grossCents) - payrollTransport(b)
+    fun expenses(b: Budget): Long = housing(b) + foodPaidFromCash(b) + bills(b) +
+        extras(b) + transportBudgetCost(b)
+    fun availableAfterExpenses(b: Budget): Long = salaryNet(b) - expenses(b)
     fun availableAfterReserve(b: Budget): Long = availableAfterExpenses(b) - b.reserveCents
+}
+
+data class SalaryBreakdown(
+    val grossCents: Long,
+    val inssCents: Long,
+    val irrfCents: Long,
+    val transportCents: Long,
+    val otherCents: Long,
+    val netCents: Long
+) {
+    val totalDeductionsCents: Long get() = inssCents + irrfCents + transportCents + otherCents
+}
+
+/** CLT mensal 2026, vínculo único e sem outras bases tributárias; é uma simulação. */
+object SalaryMath {
+    private fun roundedCents(value: BigDecimal): Long =
+        value.setScale(0, RoundingMode.HALF_UP).longValueExact()
+
+    /** INSS progressivo, teto 2026 de R$ 8.475,55. */
+    fun inss2026(grossCents: Long): Long {
+        val amount = grossCents.coerceAtLeast(0).coerceAtMost(847_555L)
+        val limits = longArrayOf(162_100, 290_284, 435_427, 847_555)
+        val rates = arrayOf("0.075", "0.09", "0.12", "0.14")
+        var previous = 0L
+        var sum = BigDecimal.ZERO
+        for (i in limits.indices) {
+            val portion = (min(amount, limits[i]) - previous).coerceAtLeast(0L)
+            sum = sum.add(BigDecimal.valueOf(portion).multiply(BigDecimal(rates[i])))
+            previous = limits[i]
+        }
+        return roundedCents(sum)
+    }
+
+    /** IRRF 2026: desconto simplificado ou deduções legais, redução até R$ 7.350. */
+    fun irrf2026(grossCents: Long, inssCents: Long, dependents: Int = 0): Long {
+        val gross = grossCents.coerceAtLeast(0L)
+        val legal = inssCents.coerceAtLeast(0L) + dependents.coerceIn(0, 20) * 18_959L
+        val deduction = maxOf(60_720L, legal)
+        val base = (gross - deduction).coerceAtLeast(0L)
+        val (rate, subtraction) = when {
+            base <= 242_880L -> "0" to 0L
+            base <= 282_665L -> "0.075" to 18_216L
+            base <= 375_105L -> "0.15" to 39_416L
+            base <= 466_468L -> "0.225" to 67_549L
+            else -> "0.275" to 90_873L
+        }
+        val initial = (roundedCents(BigDecimal.valueOf(base).multiply(BigDecimal(rate))) - subtraction).coerceAtLeast(0L)
+        val reduction = when {
+            gross <= 500_000L -> min(initial, 31_289L)
+            gross <= 735_000L -> roundedCents(BigDecimal("97862") -
+                BigDecimal.valueOf(gross).multiply(BigDecimal("0.133145"))).coerceAtLeast(0L)
+            else -> 0L
+        }
+        return (initial - min(initial, reduction)).coerceAtLeast(0L)
+    }
+
+    fun breakdown(b: Budget): SalaryBreakdown {
+        val s = b.salary
+        if (s.mode == SalaryMode.NET) return SalaryBreakdown(b.netSalaryCents, 0, 0, 0, 0, b.netSalaryCents)
+        val gross = s.grossCents.coerceAtLeast(0L)
+        val inss = if (s.autoInss) inss2026(gross) else 0L
+        val irrf = if (s.autoIrrf) irrf2026(gross, inss, s.dependents) else 0L
+        val transit = BudgetMath.payrollTransport(b)
+        val other = s.deductions.sumOf { it.amountCents.coerceAtLeast(0L) }
+        return SalaryBreakdown(gross, inss, irrf, transit, other,
+            gross - inss - irrf - transit - other)
+    }
 }
 
 object Money {

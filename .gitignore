@@ -7,3 +7,11 @@ local.properties
 .DS_Store
 *.apk
 *.aab
+
+# Assinatura privada: nunca enviar para GitHub
+*.p12
+*.jks
+*.keystore
+*Secrets-IMPORTAR*
+.env
+.env.*

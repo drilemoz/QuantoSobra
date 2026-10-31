@@ -1,6 +1,7 @@
-# Versionamento
+# Versionamento — Quanto Sobra?
 
-- Nome atual: `0.1.0-alpha.4`
-- Código atual: `4`
-- Próxima alteração: `0.1.0-alpha.5` / `versionCode 5`
-- Sincronizar `app/build.gradle.kts`, `README.md`, `CHANGELOG.md`, `docs/VERSIONING.md`, nome do Artifact no workflow e notas das versões a cada mudança.
+- Atual: `0.1.0-alpha.6`, `versionCode 6`.
+- Próxima alteração: `0.1.0-alpha.7`, `versionCode 7`.
+- Pacote fixo: `br.com.quantosobra`.
+- Sincronizar Gradle, workflow Artifact, README, CHANGELOG, RELEASE_NOTES, docs/VALIDATION e interface.
+- Dados salvos via SharedPreferences em JSON: schema 2, compatível com schema 1 (modo líquido herdado).

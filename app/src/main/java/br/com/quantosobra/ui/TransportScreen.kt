@@ -18,11 +18,11 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     val t = b.transport
     val update: (TransportConfig) -> Unit = { change(b.copy(transport = it)) }
     val gross = BudgetMath.transportGross(t)
-    val employee = BudgetMath.transportEmployeeCost(t)
+    val employee = BudgetMath.transportEmployeeCost(t, if (b.salary.mode == SalaryMode.GROSS) b.salary.grossCents else 0L)
     val company = gross - employee
 
     Page("Transporte", "Passagens e benefícios da empresa", back) {
-        SectionTotal("Descontado do saldo disponível", BudgetMath.transportFromAvailable(t))
+        SectionTotal("Descontado do orçamento", BudgetMath.transportBudgetCost(b))
         SurfaceCard {
             FieldAmount("Valor de cada passagem", t.fareCents,
                 { update(t.copy(fareCents = it)) })
@@ -43,24 +43,34 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             TransportOption("Empresa paga uma porcentagem", TransportMode.CUSTOM, t.mode,
                 { update(t.copy(mode = it)) })
             if (t.mode == TransportMode.CLT) {
-                FieldAmount("Salário básico para calcular os 6%", t.basicSalaryCents,
+                FieldAmount("Salário básico (R$)", t.basicSalaryCents,
                     { update(t.copy(basicSalaryCents = it)) },
-                    "O cálculo geral usa o salário básico, não o salário líquido. Verifique a regra do seu vínculo.")
-                if (t.basicSalaryCents <= 0) Text("Informe o salário básico. Até lá, o orçamento considera o custo integral do transporte.", color = Negative)
+                    if (b.salary.mode == SalaryMode.GROSS) "Deixe em zero para usar automaticamente o salário bruto da central de salário." else "Use o salário básico, não o líquido.")
+                if (t.basicSalaryCents <= 0 && b.salary.mode != SalaryMode.GROSS)
+                    Text("Informe o salário básico. Até lá, o orçamento considera o custo integral do transporte.", color = Negative)
             }
             if (t.mode == TransportMode.CUSTOM) {
                 FieldCount("Percentual pago pela empresa (%)", t.companyPercent, 0..100,
                     { update(t.copy(companyPercent = it)) })
             }
-            if (t.mode != TransportMode.NONE) {
+            if (t.mode == TransportMode.CUSTOM && b.salary.mode == SalaryMode.GROSS) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = t.customOnPayroll,
+                        onCheckedChange = { update(t.copy(customOnPayroll = it)) })
+                    Text("Minha parte é descontada no contracheque", modifier = Modifier.weight(1f))
+                }
+            }
+            if (t.mode != TransportMode.NONE && b.salary.mode == SalaryMode.NET) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = t.deductedFromNetSalary,
                         onCheckedChange = { update(t.copy(deductedFromNetSalary = it)) })
                     Text("Meu salário líquido já considera o desconto do transporte",
                         modifier = Modifier.weight(1f))
                 }
-                Hint("Se já saiu do contracheque antes do valor líquido que você informou, o app não desconta de novo. O custo real continua aparecendo abaixo.")
+                Hint("Se esse custo já saiu do salário líquido informado, ele não entra novamente no orçamento.")
             }
+            if (b.salary.mode == SalaryMode.GROSS && t.mode == TransportMode.CLT)
+                Hint("No modo salário bruto, o vale-transporte CLT já entra automaticamente na folha e não é lançado duas vezes.")
         }
         SurfaceCard {
             Text("Resumo mensal", style = MaterialTheme.typography.titleMedium)
@@ -68,8 +78,8 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             ValueLine("Parte estimada da empresa", company)
             HorizontalDivider(color = Lilac)
             ValueLine("Custo do trabalhador", employee, emphasize = true)
-            if (t.mode != TransportMode.NONE && t.deductedFromNetSalary) {
-                Hint("Esse custo já está refletido no salário líquido: adicional no orçamento = R$ 0.")
+            if (BudgetMath.payrollTransport(b) > 0L || (b.salary.mode == SalaryMode.NET && t.mode != TransportMode.NONE && t.deductedFromNetSalary)) {
+                Hint("Esse custo já consta como desconto no salário, sem duplicação no orçamento.")
             }
         }
         Hint("Simulação informativa: o vale-transporte CLT tem regras específicas, inclusive sobre dias elegíveis, salário básico e acordos aplicáveis. O valor real do contracheque pode ser diferente.")

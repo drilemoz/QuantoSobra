@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
                 // A home permanece ao fundo: as categorias são modais, não telas completas.
                 Dashboard(budget, { panel = it }, setBudget)
                 when (panel) {
+                    "salary" -> SalaryScreen(budget, setBudget) { panel = "home" }
                     "housing" -> HousingScreen(budget, setBudget) { panel = "home" }
                     "food" -> FoodScreen(budget, setBudget) { panel = "home" }
                     "bills" -> BillsScreen(budget, setBudget) { panel = "home" }

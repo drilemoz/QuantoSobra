@@ -1,11 +1,10 @@
-# Quanto Sobra? — Notas da versão 0.1.0-alpha.4
+# Quanto Sobra? — 0.1.0-alpha.6
 
-**31 de outubro de 2026** · `versionCode 4`
+**31/10/2026 · versionCode 6**
 
-- Interface inicial redesenhada com roxo em gradiente, painel de saldo e seis cartões compactos.
-- **Todas as categorias agora abrem em painéis flutuantes inferiores**, sem trocar a tela inteira. Fechar usando ×, gesto ou botão voltar.
-- Edição de salário, produtos e despesas, além de confirmações, em diálogos próprios e consistentes.
-- Ícone `$` discreto no cabeçalho concentra **Carregar exemplo**, **Limpar meus dados** e informações do app/versão.
-- Cálculos, dados existentes, pacote `br.com.quantosobra` e armazenamento offline preservados.
+- Suporte à assinatura Release estável por quatro GitHub Secrets.
+- Workflow gera Debug sem Secrets; gera Release assinado somente quando todos os Secrets estiverem definidos.
+- Certificado e senhas ficam fora do ZIP de código-fonte e fora do repositório.
+- Nenhuma alteração na UI, no esquema de dados nem nos cálculos da alpha.5.
 
-**Validação:** verificações locais de fonte, regras de orçamento e ZIP. A compilação Compose/Android e teste visual em aparelho são pendentes; rodar `Gerar APK` no GitHub Actions e inspecionar os modais em tela pequena e com teclado aberto.
+**Atenção:** o APK Release com a nova chave não atualiza APKs Debug já instalados. Backup/restauração ainda não implementados; preserve os dados. Build e APK Release ainda precisam de validação no GitHub Actions.

@@ -1,21 +1,30 @@
-# Registro de validação — alpha.4 (31/10/2026)
+# Validação — alpha.6 (31/10/2026)
 
-## Origem
+## Base e compatibilidade
 
-- Base real da versão `0.1.0-alpha.3` preservada a partir do ZIP existente no Google Drive.
-- Capturas de tela do usuário evidenciaram navegação por telas completas, cartões altos e ações de exemplo/limpeza/versionamento expostas no rodapé.
+- Base real: ZIP de `0.1.0-alpha.4`, já instalado/testado visualmente pelo usuário.
+- `BudgetStore` conserva a chave SharedPreferences `quanto_sobra_v1` e campos antigos; novo objeto `payroll` é opcional.
+- Arquivo JSON passa a informar schema 2. Em leitura de schema 1 ou ausência de payroll, é usado modo NET, preservando salário informado e despesas.
+- Transporte CLT usa salário básico explícito; no modo bruto, se zero, usa salário bruto configurado. Desconto do VT é contado em apenas um lugar (folha OU orçamento).
+- VA/VR é crédito de uso em alimentação, limitado ao gasto alimentar, nunca somado ao salário em dinheiro.
 
-## Alterações verificáveis
+## Checagens locais
 
-- MainActivity mantém dashboard montado ao fundo e abre exatamente um editor de categoria conforme o identificador da rota.
-- `Page()` agora renderiza `ModalBottomSheet` com scroll, altura adaptativa e ação × de fechar.
-- `ModernDialog()` fornece padrão único para edição/confirmações; telas Food, Extras e salário adotaram o padrão.
-- As ações de carregar exemplo, limpar orçamento e informações da versão foram movidas para um menu discreto no cabeçalho, com confirmação para ações destrutivas.
-- Modelo `Budget` e `BudgetStore` intactos, evitando alteração de schema e perda de dados ao atualizar.
+- 12 métodos de teste Kotlin/JVM aprovados por executor de asserções compatível, sendo 6 originais e 6 novos. Não equivalem à execução JUnit via Gradle.
+- Kotlin do domínio compilado com `kotlinc 1.9.0` e testes executados.
+- 13 arquivos Kotlin analisados com parser PSI, sem erros de sintaxe.
+- Tabelas de INSS e IRRF baseadas no INSS/Receita Federal, competência 2026. Atenção: exemplos antigos da Receita podem trazer contribuição previdenciária de outro ano; cálculos usam faixas oficiais de janeiro de 2026.
+- Arquivos de workflow, XML e ZIP validados estruturalmente.
 
-## Limitações
+## Pendente
 
-- SDK Android e Gradle não disponíveis no ambiente local: não foi possível compilar Compose/Android ou conferir a interface rodando.
-- Verificações locais de sintaxe/estrutura e execução isolada das regras não substituem `:app:testDebugUnitTest` e `:app:assembleDebug` no GitHub Actions.
-- É necessário conferir os bottom sheets, foco de teclado, rolagem e valores no dispositivo, sobretudo em telas pequenas.
-- APK Debug do CI pode ser assinado com chave diferente entre ambientes: evitar desinstalar apps com orçamento importante sem backup externo.
+- `:app:testDebugUnitTest`, `:app:assembleDebug` e testes instrumentados/reais no Android.
+- Testes reais de teclado em pop-ups/bottom sheets, atualização da alpha.4 sem perda, benefícios de folha e eventual mudança de comportamento ao atingir targetSdk 36.
+- O modelo não é um software de folha de pagamento: não suporta múltiplos vínculos, 13º, férias, bases diferenciadas nem regras por convenção coletiva.
+
+## Alpha.6 — assinatura Release por Secrets
+
+- Quatro Secrets suportados, chaves PKCS12 geradas separadamente do projeto e nunca colocadas no ZIP do código.
+- APK Debug permanece independente da assinatura Release; Release é gerado condicionalmente se todos os Secrets forem configurados.
+- Sintaxe YAML, estrutura XML e integridade do ZIP verificadas localmente; assinatura PKCS12 verificada com keytool.
+- **Pendente**: compilação Android completa, testes JUnit no CI e assinatura efetiva do APK Release com os quatro Secrets.

@@ -4,21 +4,45 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Assinatura Release: opcional e fornecida apenas pelo ambiente do CI.
+// Não guardar keystore nem senhas no repositório.
+val releaseKeystorePath = System.getenv("QUANTO_SOBRA_KEYSTORE_PATH")
+val releaseKeystorePassword = System.getenv("KEYSTORE_PASSWORD")
+val releaseKeyAlias = System.getenv("KEY_ALIAS")
+val releaseKeyPassword = System.getenv("KEY_PASSWORD")
+val releaseSigningConfigured = listOf(
+    releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword
+).all { !it.isNullOrBlank() }
+
 android {
     namespace = "br.com.quantosobra"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "br.com.quantosobra"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 4
-        versionName = "0.1.0-alpha.4"
+        targetSdk = 36
+        versionCode = 6
+        versionName = "0.1.0-alpha.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("ciRelease") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePassword!!
+                keyAlias = releaseKeyAlias!!
+                keyPassword = releaseKeyPassword!!
+                storeType = "PKCS12"
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("ciRelease")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

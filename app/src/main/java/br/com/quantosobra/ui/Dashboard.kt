@@ -22,14 +22,14 @@ import br.com.quantosobra.domain.*
 
 @Composable
 fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Budget) -> Unit) {
-    var salaryDialog by remember { mutableStateOf(false) }
     var optionsDialog by remember { mutableStateOf(false) }
     var exampleDialog by remember { mutableStateOf(false) }
     var clearDialog by remember { mutableStateOf(false) }
+    val income = BudgetMath.salaryNet(budget)
     val expenses = BudgetMath.expenses(budget)
     val available = BudgetMath.availableAfterReserve(budget)
-    val spentPercent = if (budget.netSalaryCents > 0)
-        (expenses.toDouble() / budget.netSalaryCents).coerceIn(0.0, 1.0).toFloat() else 0f
+    val spentPercent = if (income > 0)
+        (expenses.toDouble() / income).coerceIn(0.0, 1.0).toFloat() else 0f
 
     LazyColumn(Modifier.fillMaxSize().background(Background),
         contentPadding = PaddingValues(bottom = 28.dp)) {
@@ -64,14 +64,14 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
                         }
                     }
                     Spacer(Modifier.height(25.dp))
-                    Text("SALÁRIO LÍQUIDO / MÊS", color = Color(0xFFEDDBFB), fontSize = 11.sp,
+                    Text("SALÁRIO LÍQUIDO ESTIMADO / MÊS", color = Color(0xFFEDDBFB), fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(Money.format(budget.netSalaryCents), color = Color.White,
+                        Text(Money.format(income), color = Color.White,
                             fontSize = 32.sp, fontWeight = FontWeight.ExtraBold,
                             modifier = Modifier.weight(1f), maxLines = 1,
                             overflow = TextOverflow.Ellipsis)
-                        Surface(onClick = { salaryDialog = true }, color = Color.White.copy(alpha = 0.16f),
+                        Surface(onClick = { onNavigate("salary") }, color = Color.White.copy(alpha = 0.16f),
                             shape = RoundedCornerShape(13.dp)) {
                             Text("Editar ✎", modifier = Modifier.padding(horizontal = 13.dp, vertical = 9.dp),
                                 color = Color.White, fontWeight = FontWeight.Medium, fontSize = 12.sp)
@@ -103,13 +103,13 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
                         }
                         LinearProgressIndicator(progress = { spentPercent },
                             modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                            color = if (expenses > budget.netSalaryCents) Negative else Purple,
+                            color = if (expenses > income) Negative else Purple,
                             trackColor = Lilac)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Gastos ${Money.format(expenses)}", fontSize = 11.sp, color = Muted)
                             Text("Reserva ${Money.format(budget.reserveCents)}", fontSize = 11.sp, color = Muted)
                         }
-                        if (budget.netSalaryCents == 0L) Hint("Toque em Editar para começar o seu orçamento.")
+                        if (income == 0L) Hint("Toque em Editar para começar o seu orçamento.")
                     }
                 }
             }
@@ -127,11 +127,11 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
             Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
                     CategoryTile("⌂", "Moradia", "Aluguel e IPTU", BudgetMath.housing(budget), "housing", onNavigate, Modifier.weight(1f))
-                    CategoryTile("✦", "Alimentação", "Mercado e refeições", BudgetMath.food(budget), "food", onNavigate, Modifier.weight(1f))
+                    CategoryTile("✦", "Alimentação", "Mercado e refeições", BudgetMath.foodPaidFromCash(budget), "food", onNavigate, Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
                     CategoryTile("ϟ", "Contas", "Água, luz e mais", BudgetMath.bills(budget), "bills", onNavigate, Modifier.weight(1f))
-                    CategoryTile("↗", "Transporte", "Passagens e VT", BudgetMath.transportFromAvailable(budget.transport), "transport", onNavigate, Modifier.weight(1f))
+                    CategoryTile("↗", "Transporte", "Passagens e VT", BudgetMath.transportBudgetCost(budget), "transport", onNavigate, Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
                     CategoryTile("＋", "Outros gastos", "Saúde, lazer e mais", BudgetMath.extras(budget), "extras", onNavigate, Modifier.weight(1f))
@@ -151,7 +151,7 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
         Page("Seu espaço", "Preferências e informações do aplicativo", { optionsDialog = false }) {
             SurfaceCard {
                 Text("Quanto Sobra?", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                Text("Versão 0.1.0-alpha.4", fontSize = 12.sp, color = Muted)
+                Text("Versão 0.1.0-alpha.6", fontSize = 12.sp, color = Muted)
                 HorizontalDivider(color = Lilac)
                 Text("Simule seu orçamento com privacidade. Tudo fica neste dispositivo.", fontSize = 13.sp, color = Muted)
                 AppButton("Carregar exemplo de R$ 3.000") { optionsDialog = false; exampleDialog = true }
@@ -164,21 +164,6 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
         }
     }
 
-    if (salaryDialog) {
-        var value by remember(budget.netSalaryCents) {
-            mutableStateOf(if (budget.netSalaryCents == 0L) "" else Money.input(budget.netSalaryCents))
-        }
-        ModernDialog("Seu salário líquido", { salaryDialog = false }, "Salvar", {
-            Money.parse(value)?.let { onBudgetChange(budget.copy(netSalaryCents = it)) }
-            salaryDialog = false
-        }, confirmEnabled = Money.parse(value) != null) {
-            OutlinedTextField(value, { if (it.length <= 19) value = it },
-                modifier = Modifier.fillMaxWidth(), label = { Text("Valor mensal em R$") },
-                singleLine = true,
-                isError = Money.parse(value) == null)
-            Hint("Informe o valor que realmente recebe após descontos. Se o vale-transporte já foi descontado, marque isso em Transporte.")
-        }
-    }
     if (exampleDialog) {
         ModernDialog("Carregar simulação?", { exampleDialog = false }, "Substituir", {
             onBudgetChange(Budget(

@@ -49,8 +49,27 @@ class BudgetStore(context: Context) {
             )
         }
         val t = j.optJSONObject("transport") ?: JSONObject()
+        val salaryJ = j.optJSONObject("payroll") ?: JSONObject()
+        val deductionsJ = salaryJ.optJSONArray("deductions") ?: JSONArray()
+        val deductions = (0 until minOf(deductionsJ.length(), 100)).mapNotNull { i ->
+            val item = deductionsJ.optJSONObject(i) ?: return@mapNotNull null
+            val name = item.optString("name").trim().take(80)
+            if (name.isBlank()) null else PayrollDeduction(
+                id = item.optLong("id", i.toLong()), name = name,
+                amountCents = item.nonNegativeLong("value")
+            )
+        }
         return Budget(
             netSalaryCents = j.nonNegativeLong("salary"),
+            salary = SalaryConfig(
+                mode = SalaryMode.entries.find { it.name == salaryJ.optString("mode") } ?: SalaryMode.NET,
+                grossCents = salaryJ.nonNegativeLong("gross"),
+                autoInss = salaryJ.optBoolean("autoInss", true),
+                autoIrrf = salaryJ.optBoolean("autoIrrf", true),
+                dependents = salaryJ.nonNegativeInt("dependents", 0, 20),
+                foodBenefitCents = salaryJ.nonNegativeLong("foodBenefit"),
+                deductions = deductions
+            ),
             rentCents = j.nonNegativeLong("rent"),
             condominiumCents = j.nonNegativeLong("condominium"),
             iptuCents = j.nonNegativeLong("iptu"),
@@ -70,7 +89,8 @@ class BudgetStore(context: Context) {
                     ?: TransportMode.NONE,
                 basicSalaryCents = t.nonNegativeLong("basicSalary"),
                 companyPercent = t.nonNegativeInt("companyPercent", 50, 100),
-                deductedFromNetSalary = t.optBoolean("alreadyDeducted", false)
+                deductedFromNetSalary = t.optBoolean("alreadyDeducted", false),
+                customOnPayroll = t.optBoolean("customOnPayroll", false)
             ),
             extras = extras,
             reserveCents = j.nonNegativeLong("reserve")
@@ -78,7 +98,20 @@ class BudgetStore(context: Context) {
     }
 
     private fun toJson(b: Budget): JSONObject = JSONObject().apply {
-        put("schema", 1)
+        put("schema", 2)
+        put("payroll", JSONObject().apply {
+            put("mode", b.salary.mode.name)
+            put("gross", b.salary.grossCents)
+            put("autoInss", b.salary.autoInss)
+            put("autoIrrf", b.salary.autoIrrf)
+            put("dependents", b.salary.dependents)
+            put("foodBenefit", b.salary.foodBenefitCents)
+            put("deductions", JSONArray().apply {
+                b.salary.deductions.forEach { d -> put(JSONObject().apply {
+                    put("id", d.id); put("name", d.name); put("value", d.amountCents)
+                }) }
+            })
+        })
         put("salary", b.netSalaryCents)
         put("rent", b.rentCents)
         put("condominium", b.condominiumCents)
@@ -111,6 +144,7 @@ class BudgetStore(context: Context) {
             put("basicSalary", b.transport.basicSalaryCents)
             put("companyPercent", b.transport.companyPercent)
             put("alreadyDeducted", b.transport.deductedFromNetSalary)
+            put("customOnPayroll", b.transport.customOnPayroll)
         })
     }
 }

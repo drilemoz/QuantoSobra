@@ -19,7 +19,14 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     var showAdd by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<FoodProduct?>(null) }
     Page("Alimentação", "O custo real do seu supermercado", back) {
-        SectionTotal("Alimentação por mês", BudgetMath.food(b))
+        SectionTotal("Pago com dinheiro no mês", BudgetMath.foodPaidFromCash(b))
+        if (b.salary.foodBenefitCents > 0L) {
+            SurfaceCard {
+                ValueLine("Custo de alimentação", BudgetMath.food(b))
+                ValueLine("VA/VR usado (até o custo)", minOf(b.salary.foodBenefitCents, BudgetMath.food(b)))
+                Hint("O crédito VA/VR é configurado em Meu salário. Confira quais estabelecimentos e compras aceitam o benefício.")
+            }
+        }
         SurfaceCard {
             Text("Refeições fora de casa", fontSize = 17.sp, fontWeight = FontWeight.Bold)
             FieldAmount("Restaurantes / lanches por mês", b.foodOutsideCents,
