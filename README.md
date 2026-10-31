@@ -2,7 +2,15 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.3` · **versionCode:** `3` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.4` · **versionCode:** `4` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Nova experiência de interface (alpha.4)
+
+Com base nas capturas enviadas do app instalado, todas as categorias foram convertidas de telas completas para **painéis flutuantes inferiores** (`ModalBottomSheet`) que abrem sobre o orçamento e podem ser fechados pelo botão ×, gesto ou voltar. Os formulários e confirmações agora usam diálogos com cantos arredondados e ações agrupadas. Os detalhes continuam editáveis e o total é atualizado em tempo real.
+
+A tela inicial foi redesenhada com um painel de saldo e uma grade compacta de seis categorias. As ações **Carregar exemplo** e **Limpar dados** não ocupam mais o rodapé; ficam dentro do menu acessado pelo pequeno ícone `$` no cabeçalho, que também exibe o nome e a versão do aplicativo. A opção de apagar dados continua exigindo confirmação.
+
+**Dados existentes preservados:** mesmo ID do aplicativo, mesmo schema de JSON e preferências; apenas apresentação e navegação foram alteradas. Vale-transporte, alimentação, reserva e campos financeiros mantêm os cálculos da alpha.3. Não foi realizada compilação Android completa neste ambiente, portanto o novo layout e eventuais incompatibilidades de Compose ainda precisam ser validados no GitHub Actions e no dispositivo.
 
 ## Correção do build 2 (alpha.3)
 
@@ -32,13 +40,13 @@ A alpha.2 muda para `android-actions/setup-android@v4` e instala explicitamente 
 - Exemplo de R$ 3.000 e opção para limpar dados com confirmação.
 - Persistência privada via `SharedPreferences` + JSON local. **Sem login, servidor, anúncios, permissão de internet ou coleta de dados.**
 
-O estilo é autoral, com a combinação roxo/lilás e cartões compactos inspirada genericamente em interfaces de bancos digitais; não usa marca, logo ou recursos de terceiros.
+O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais inspirados genericamente em aplicativos financeiros; não usa logotipo nem identidade de terceiros.
 
 ## Como gerar APK pelo GitHub Actions
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.3-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.4-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 35, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.
@@ -47,8 +55,8 @@ Para abrir pelo Android Studio, use JDK 17, SDK Android 35, Android Gradle Plugi
 
 - `domain/Budget.kt`: dados, regras de orçamento, dinheiro em centavos, transporte e cálculo de produtos, sem dependência do Android.
 - `data/BudgetStore.kt`: persistência local com JSON e limites de leitura.
-- `ui/`: telas Compose, campos, tema, painel principal e editores.
-- `MainActivity.kt`: navegação simples e estado único, sem biblioteca de navegação externa.
+- `ui/`: dashboard Compose, modais inferiores para categorias, diálogos de edição, campos, tema e componentes reutilizáveis.
+- `MainActivity.kt`: dashboard fixo, estado único e exibição contextual de modais, sem biblioteca de navegação externa.
 
 ## Limitações atuais
 

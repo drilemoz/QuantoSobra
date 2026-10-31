@@ -1,10 +1,11 @@
-# Quanto Sobra? — Notas da versão 0.1.0-alpha.3
+# Quanto Sobra? — Notas da versão 0.1.0-alpha.4
 
-**31 de outubro de 2026** · `versionCode 3`
+**31 de outubro de 2026** · `versionCode 4`
 
-- Corrigido teste unitário `BudgetMathTest.moneyLocalized`, cuja comparação misturava `Int` e `Long?` e provocava falsa falha no JUnit.
-- Adicionados testes para entrada com `R$`, vazio e formato inválido.
-- Código Kotlin do aplicativo compilou no GitHub Actions do build 2 (alpha.2); o APK ficou pendente devido à falha de testes, agora corrigida no código-fonte.
-- Lógica financeira, telas e dados salvos permanecem iguais aos da alpha.2.
+- Interface inicial redesenhada com roxo em gradiente, painel de saldo e seis cartões compactos.
+- **Todas as categorias agora abrem em painéis flutuantes inferiores**, sem trocar a tela inteira. Fechar usando ×, gesto ou botão voltar.
+- Edição de salário, produtos e despesas, além de confirmações, em diálogos próprios e consistentes.
+- Ícone `$` discreto no cabeçalho concentra **Carregar exemplo**, **Limpar meus dados** e informações do app/versão.
+- Cálculos, dados existentes, pacote `br.com.quantosobra` e armazenamento offline preservados.
 
-**Para validar esta versão:** execute `Gerar APK` no GitHub Actions e confira as tarefas `:app:testDebugUnitTest` e `:app:assembleDebug`. APK ainda não foi gerado ou testado nesta entrega.
+**Validação:** verificações locais de fonte, regras de orçamento e ZIP. A compilação Compose/Android e teste visual em aparelho são pendentes; rodar `Gerar APK` no GitHub Actions e inspecionar os modais em tela pequena e com teclado aberto.

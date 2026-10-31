@@ -1,5 +1,9 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.4 (31/10/2026)
+
+Redesign do orçamento a partir de capturas reais: categorias em grade compacta, cartão de saldo com indicador de comprometimento, cabeçalho em gradiente e editores de **todas as categorias em bottom sheets**, sem navegação para páginas completas. Edição de salário, produtos, extras e confirmações usa pop-ups personalizados. O ícone `$` discreto no topo abre opções com nome/versão, carregar exemplo e limpeza confirmada. Mantidos pacote, persistência, schema e regras financeiras, preservando valores existentes. `versionCode 4`, `versionName 0.1.0-alpha.4`, documentação e Artifact sincronizados. APK/visual ainda pendentes de build e teste físico.
+
 ## 0.1.0-alpha.3 (31/10/2026)
 
 Correção do **build 2**: o SDK Android e a compilação Kotlin passaram, mas `:app:testDebugUnitTest` falhou em `BudgetMathTest.moneyLocalized` (linha 40) por comparação JUnit de `Int` com o retorno monetário `Long?`. Asserções normalizadas para `Long` e casos adicionais para `R$`, campo vazio e entrada malformada. Sem alterações na lógica de orçamento, persistência ou interface, exceto número de versão. `versionCode 3`, `versionName`, painel, nome do Artifact, README e documentação sincronizados. APK aguarda validação do próximo GitHub Actions.

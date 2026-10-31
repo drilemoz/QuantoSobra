@@ -82,37 +82,38 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
 private fun ProductDialog(initial: FoodProduct?, dismiss: () -> Unit,
                           save: (String, Long, Int) -> Unit) {
     var name by remember(initial?.id) { mutableStateOf(initial?.name ?: "") }
-    var price by remember(initial?.id) { mutableStateOf(if ((initial?.unitPriceCents ?: 0L) == 0L) "" else Money.input(initial!!.unitPriceCents)) }
-    var qty by remember(initial?.id) { mutableStateOf(Money.quantityInput(initial?.quantityHundredths ?: 100)) }
+    var price by remember(initial?.id) {
+        mutableStateOf(if ((initial?.unitPriceCents ?: 0L) == 0L) "" else Money.input(initial!!.unitPriceCents))
+    }
+    var qty by remember(initial?.id) {
+        mutableStateOf(Money.quantityInput(initial?.quantityHundredths ?: 100))
+    }
     val cents = Money.parse(price)
     val quantity = Money.quantityHundredths(qty)
-    AlertDialog(
-        onDismissRequest = dismiss,
-        title = { Text(if (initial == null) "Adicionar produto" else "Editar produto") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { if (it.length <= 80) name = it },
-                    label = { Text("Produto (ex.: arroz 1 kg)") }, singleLine = true)
-                OutlinedTextField(price, { if (it.length <= 19) price = it },
-                    label = { Text("Preço por unidade (R$)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,
-                    isError = cents == null)
-                OutlinedTextField(qty, { if (it.length <= 10) qty = it },
-                    label = { Text("Quantidade no mês") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,
-                    isError = quantity == null)
-                if (cents != null && quantity != null) {
-                    Text("Subtotal: ${Money.format((cents * quantity + 50L) / 100L)}",
-                        color = Purple, fontWeight = FontWeight.Bold)
-                }
+    ModernDialog(
+        title = if (initial == null) "Novo produto" else "Editar produto",
+        onDismiss = dismiss,
+        confirmText = "Salvar",
+        confirmEnabled = name.isNotBlank() && cents != null && quantity != null,
+        onConfirm = { if (cents != null && quantity != null) save(name.trim(), cents, quantity) }
+    ) {
+        OutlinedTextField(name, { if (it.length <= 80) name = it },
+            modifier = Modifier.fillMaxWidth(), label = { Text("Nome do produto") },
+            singleLine = true, shape = RoundedCornerShape(15.dp))
+        OutlinedTextField(price, { if (it.length <= 19) price = it },
+            modifier = Modifier.fillMaxWidth(), label = { Text("Preço por unidade") },
+            prefix = { Text("R$ ") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,
+            shape = RoundedCornerShape(15.dp), isError = cents == null)
+        OutlinedTextField(qty, { if (it.length <= 10) qty = it },
+            modifier = Modifier.fillMaxWidth(), label = { Text("Quantidade por mês") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,
+            shape = RoundedCornerShape(15.dp), isError = quantity == null)
+        if (cents != null && quantity != null) {
+            Surface(color = Lilac, shape = RoundedCornerShape(14.dp)) {
+                Text("Subtotal  ${Money.format((cents * quantity + 50L) / 100L)}",
+                    modifier = Modifier.padding(14.dp), color = Purple, fontWeight = FontWeight.Bold)
             }
-        },
-        confirmButton = {
-            TextButton(enabled = name.isNotBlank() && cents != null && quantity != null,
-                onClick = { if (cents != null && quantity != null) save(name.trim(), cents, quantity) }) {
-                Text("Salvar")
-            }
-        },
-        dismissButton = { TextButton(onClick = dismiss) { Text("Cancelar") } }
-    )
+        }
+    }
 }

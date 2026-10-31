@@ -1,22 +1,21 @@
-# Registro de validação — alpha.3
+# Registro de validação — alpha.4 (31/10/2026)
 
-## Evidência recebida do workflow Gerar APK 2
+## Origem
 
-- `QuantoSobra-Gerar-APK-2-logs.zip`, execução de 31/10/2026, indica que Android SDK 35 e Gradle 8.11.1 foram preparados.
-- Tarefas `:app:compileDebugKotlin` e `:app:compileDebugUnitTestKotlin` executadas sem erros.
-- **Falha real:** `:app:testDebugUnitTest` com `6 tests completed, 1 failed` / `BudgetMathTest > moneyLocalized FAILED`, linha 40.
-- Causa: comparação de `Int` no esperado com `Long?` no valor real, selecionando igualdade por objetos no JUnit. O conversor isolado devolve `135000` centavos para `1.350,00` e `570` para `5,70`.
-- Warning sobre Node.js 20 do `setup-gradle@v4` não provocou falha; não é o erro deste workflow.
+- Base real da versão `0.1.0-alpha.3` preservada a partir do ZIP existente no Google Drive.
+- Capturas de tela do usuário evidenciaram navegação por telas completas, cartões altos e ações de exemplo/limpeza/versionamento expostas no rodapé.
 
-## Correções da alpha.3
+## Alterações verificáveis
 
-- Expectativas monetárias do teste `moneyLocalized` passam a ser literais `Long` com `L`.
-- Acrescentadas asserções para `R$ 1.350,00`, string vazia e formato monetário malformado.
-- versionCode, versionName, UI, artifact e documentação sincronizados.
-- Sem mudanças no domínio, persistência e esquema de dados; atualização preserva os dados existentes.
+- MainActivity mantém dashboard montado ao fundo e abre exatamente um editor de categoria conforme o identificador da rota.
+- `Page()` agora renderiza `ModalBottomSheet` com scroll, altura adaptativa e ação × de fechar.
+- `ModernDialog()` fornece padrão único para edição/confirmações; telas Food, Extras e salário adotaram o padrão.
+- As ações de carregar exemplo, limpar orçamento e informações da versão foram movidas para um menu discreto no cabeçalho, com confirmação para ações destrutivas.
+- Modelo `Budget` e `BudgetStore` intactos, evitando alteração de schema e perda de dados ao atualizar.
 
-## Pendente
+## Limitações
 
-- Validar em runner real `gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug` na alpha.3.
-- Inspeção visual em Android e testes de persistência após atualização.
-- Assinatura de APK Debug criada pelo CI pode não ser estável entre runners; não desinstalar versão anterior sem preservar dados.
+- SDK Android e Gradle não disponíveis no ambiente local: não foi possível compilar Compose/Android ou conferir a interface rodando.
+- Verificações locais de sintaxe/estrutura e execução isolada das regras não substituem `:app:testDebugUnitTest` e `:app:assembleDebug` no GitHub Actions.
+- É necessário conferir os bottom sheets, foco de teclado, rolagem e valores no dispositivo, sobretudo em telas pequenas.
+- APK Debug do CI pode ser assinado com chave diferente entre ambientes: evitar desinstalar apps com orçamento importante sem backup externo.

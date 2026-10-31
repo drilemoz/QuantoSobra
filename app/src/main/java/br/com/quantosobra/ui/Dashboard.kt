@@ -13,6 +13,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.quantosobra.domain.*
@@ -20,6 +23,7 @@ import br.com.quantosobra.domain.*
 @Composable
 fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Budget) -> Unit) {
     var salaryDialog by remember { mutableStateOf(false) }
+    var optionsDialog by remember { mutableStateOf(false) }
     var exampleDialog by remember { mutableStateOf(false) }
     var clearDialog by remember { mutableStateOf(false) }
     val expenses = BudgetMath.expenses(budget)
@@ -27,168 +31,197 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
     val spentPercent = if (budget.netSalaryCents > 0)
         (expenses.toDouble() / budget.netSalaryCents).coerceIn(0.0, 1.0).toFloat() else 0f
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().background(Background),
-        contentPadding = PaddingValues(bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
+    LazyColumn(Modifier.fillMaxSize().background(Background),
+        contentPadding = PaddingValues(bottom = 28.dp)) {
         item {
-            Column(
-                Modifier.fillMaxWidth().background(
-                    Brush.verticalGradient(listOf(Purple, DeepPurple))
-                ).padding(start = 23.dp, end = 23.dp, top = 28.dp, bottom = 30.dp)
+            Box(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+                    .background(Brush.linearGradient(listOf(Color(0xFF781BD5), Purple, DeepPurple)))
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(42.dp).background(Color.White.copy(alpha = 0.16f), CircleShape),
-                        contentAlignment = Alignment.Center) {
-                        Text("$", fontSize = 27.sp, fontWeight = FontWeight.Black, color = Color.White)
+                // Formas suaves, sem imagens externas, para dar profundidade ao cabeçalho.
+                Box(Modifier.size(190.dp).offset(x = 255.dp, y = (-80).dp)
+                    .background(Color.White.copy(alpha = 0.055f), CircleShape))
+                Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 43.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center) {
+                            Text("✦", color = Color.White, fontSize = 21.sp)
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Quanto Sobra?", color = Color.White, fontSize = 19.sp,
+                                fontWeight = FontWeight.ExtraBold)
+                            Text("Sua vida financeira, mais clara.", color = Color(0xFFEADCF9), fontSize = 11.sp)
+                        }
+                        Surface(onClick = { optionsDialog = true },
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.16f),
+                            modifier = Modifier.size(42.dp).semantics { contentDescription = "Opções e informações do aplicativo" }) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("$", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text("Quanto Sobra?", color = Color.White, fontSize = 25.sp,
-                            fontWeight = FontWeight.ExtraBold)
-                        Text("O seu dinheiro, sem surpresas.", color = Color(0xFFE9D7F3), fontSize = 13.sp)
-                    }
-                }
-                Spacer(Modifier.height(28.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("SALÁRIO LÍQUIDO MENSAL", color = Color(0xFFEAD9F7),
-                            fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(25.dp))
+                    Text("SALÁRIO LÍQUIDO / MÊS", color = Color(0xFFEDDBFB), fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(Money.format(budget.netSalaryCents), color = Color.White,
-                            fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
-                    }
-                    TextButton(onClick = { salaryDialog = true }) {
-                        Text("Editar ✎", color = Color.White)
-                    }
-                }
-            }
-        }
-        item {
-            Column(Modifier.padding(horizontal = 16.dp).offset(y = (-14).dp)) {
-                SurfaceCard {
-                    Text("Saldo disponível no mês", fontSize = 13.sp, color = Muted)
-                    Text(Money.format(available), color = if (available >= 0) Positive else Negative,
-                        fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
-                    if (budget.netSalaryCents == 0L) {
-                        Hint("Comece informando o salário. Depois toque em cada categoria para montar seu orçamento.")
-                    } else {
-                        Text(if (available >= 0) "Depois das despesas e da reserva planejada"
-                            else "Seu orçamento está acima da renda informada",
-                            color = Muted, fontSize = 12.sp)
-                    }
-                    Spacer(Modifier.height(3.dp))
-                    LinearProgressIndicator(
-                        progress = { spentPercent }, modifier = Modifier.fillMaxWidth().height(10.dp)
-                            .clip(RoundedCornerShape(20.dp)),
-                        color = if (expenses > budget.netSalaryCents) Negative else Purple,
-                        trackColor = Lilac
-                    )
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Despesas: ${Money.format(expenses)}", fontSize = 12.sp, color = Muted)
-                        Text("Reserva: ${Money.format(budget.reserveCents)}", fontSize = 12.sp, color = Muted)
+                            fontSize = 32.sp, fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier.weight(1f), maxLines = 1,
+                            overflow = TextOverflow.Ellipsis)
+                        Surface(onClick = { salaryDialog = true }, color = Color.White.copy(alpha = 0.16f),
+                            shape = RoundedCornerShape(13.dp)) {
+                            Text("Editar ✎", modifier = Modifier.padding(horizontal = 13.dp, vertical = 9.dp),
+                                color = Color.White, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                        }
                     }
                 }
             }
         }
         item {
-            Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 10.dp)) {
-                Text("Seu orçamento", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Ink)
-                Text("Toque em uma categoria para detalhar", fontSize = 13.sp, color = Muted)
+            Column(Modifier.padding(horizontal = 16.dp).offset(y = (-23).dp)) {
+                Surface(shape = RoundedCornerShape(25.dp), color = Color.White, shadowElevation = 7.dp,
+                    modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Disponível para você", fontSize = 12.sp, color = Muted)
+                                Text(Money.format(available),
+                                    color = if (available >= 0) Positive else Negative,
+                                    fontSize = 29.sp, fontWeight = FontWeight.ExtraBold,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            Surface(color = if (available >= 0) Color(0xFFE1F6EC) else Color(0xFFFBE9ED),
+                                shape = RoundedCornerShape(12.dp)) {
+                                Text(if (available >= 0) "✓ No limite" else "! Atenção",
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                    color = if (available >= 0) Positive else Negative,
+                                    fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        LinearProgressIndicator(progress = { spentPercent },
+                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                            color = if (expenses > budget.netSalaryCents) Negative else Purple,
+                            trackColor = Lilac)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Gastos ${Money.format(expenses)}", fontSize = 11.sp, color = Muted)
+                            Text("Reserva ${Money.format(budget.reserveCents)}", fontSize = 11.sp, color = Muted)
+                        }
+                        if (budget.netSalaryCents == 0L) Hint("Toque em Editar para começar o seu orçamento.")
+                    }
+                }
             }
         }
-        item { CategoryCard("⌂", "Moradia", "Aluguel, condomínio e IPTU", BudgetMath.housing(budget), "housing", onNavigate) }
-        item { CategoryCard("✦", "Alimentação", "Produtos, quantidades e refeições", BudgetMath.food(budget), "food", onNavigate) }
-        item { CategoryCard("⚡", "Contas da casa", "Luz, água, internet, gás e celular", BudgetMath.bills(budget), "bills", onNavigate) }
-        item { CategoryCard("↗", "Transporte", "Passagens, dias de trabalho e VT", BudgetMath.transportFromAvailable(budget.transport), "transport", onNavigate) }
-        item { CategoryCard("＋", "Outras despesas", "Saúde, higiene, roupas, lazer e parcelas", BudgetMath.extras(budget), "extras", onNavigate) }
-        item { CategoryCard("◎", "Reserva mensal", "Emergência e objetivos", budget.reserveCents, "reserve", onNavigate) }
         item {
-            Column(Modifier.padding(horizontal = 22.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                HorizontalDivider(color = Color(0xFFE8E0ED))
-                Text("Simulações ficam salvas somente neste aparelho.", color = Muted, fontSize = 12.sp)
-                TextButton(onClick = { exampleDialog = true }) { Text("Carregar exemplo de R$ 3.000") }
-                TextButton(onClick = { clearDialog = true }) { Text("Limpar meus dados", color = Negative) }
-                Text("Quanto Sobra?  •  0.1.0-alpha.3", color = Muted, fontSize = 11.sp)
+            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 1.dp, bottom = 11.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("Organize seus gastos", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Ink)
+                    Text("Toque em um cartão para editar", color = Muted, fontSize = 12.sp)
+                }
             }
+        }
+        item {
+            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+                    CategoryTile("⌂", "Moradia", "Aluguel e IPTU", BudgetMath.housing(budget), "housing", onNavigate, Modifier.weight(1f))
+                    CategoryTile("✦", "Alimentação", "Mercado e refeições", BudgetMath.food(budget), "food", onNavigate, Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+                    CategoryTile("ϟ", "Contas", "Água, luz e mais", BudgetMath.bills(budget), "bills", onNavigate, Modifier.weight(1f))
+                    CategoryTile("↗", "Transporte", "Passagens e VT", BudgetMath.transportFromAvailable(budget.transport), "transport", onNavigate, Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+                    CategoryTile("＋", "Outros gastos", "Saúde, lazer e mais", BudgetMath.extras(budget), "extras", onNavigate, Modifier.weight(1f))
+                    CategoryTile("◎", "Reserva", "Guardar por mês", budget.reserveCents, "reserve", onNavigate, Modifier.weight(1f))
+                }
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth().padding(top = 22.dp, bottom = 10.dp),
+                horizontalArrangement = Arrangement.Center) {
+                Text("●  Dados salvos apenas no seu aparelho", fontSize = 11.sp, color = Muted)
+            }
+        }
+    }
+
+    if (optionsDialog) {
+        Page("Seu espaço", "Preferências e informações do aplicativo", { optionsDialog = false }) {
+            SurfaceCard {
+                Text("Quanto Sobra?", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                Text("Versão 0.1.0-alpha.4", fontSize = 12.sp, color = Muted)
+                HorizontalDivider(color = Lilac)
+                Text("Simule seu orçamento com privacidade. Tudo fica neste dispositivo.", fontSize = 13.sp, color = Muted)
+                AppButton("Carregar exemplo de R$ 3.000") { optionsDialog = false; exampleDialog = true }
+                OutlinedButton(onClick = { optionsDialog = false; clearDialog = true },
+                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Text("Limpar meus dados", color = Negative)
+                }
+            }
+            Hint("O exemplo substitui os dados atuais. A limpeza exige confirmação.")
         }
     }
 
     if (salaryDialog) {
-        var value by remember { mutableStateOf(if (budget.netSalaryCents == 0L) "" else Money.input(budget.netSalaryCents)) }
-        AlertDialog(
-            onDismissRequest = { salaryDialog = false },
-            title = { Text("Seu salário líquido") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = value, onValueChange = { if (it.length <= 19) value = it },
-                        label = { Text("Valor mensal em R$") }, singleLine = true,
-                        isError = Money.parse(value) == null)
-                    Hint("Informe quanto realmente cai na sua conta, após descontos. Se o vale-transporte já foi descontado, marque isso na tela Transporte.")
-                }
-            },
-            confirmButton = {
-                TextButton(enabled = Money.parse(value) != null,
-                    onClick = { onBudgetChange(budget.copy(netSalaryCents = Money.parse(value) ?: 0)); salaryDialog = false }) {
-                    Text("Salvar")
-                }
-            },
-            dismissButton = { TextButton(onClick = { salaryDialog = false }) { Text("Cancelar") } }
-        )
+        var value by remember(budget.netSalaryCents) {
+            mutableStateOf(if (budget.netSalaryCents == 0L) "" else Money.input(budget.netSalaryCents))
+        }
+        ModernDialog("Seu salário líquido", { salaryDialog = false }, "Salvar", {
+            Money.parse(value)?.let { onBudgetChange(budget.copy(netSalaryCents = it)) }
+            salaryDialog = false
+        }, confirmEnabled = Money.parse(value) != null) {
+            OutlinedTextField(value, { if (it.length <= 19) value = it },
+                modifier = Modifier.fillMaxWidth(), label = { Text("Valor mensal em R$") },
+                singleLine = true,
+                isError = Money.parse(value) == null)
+            Hint("Informe o valor que realmente recebe após descontos. Se o vale-transporte já foi descontado, marque isso em Transporte.")
+        }
     }
     if (exampleDialog) {
-        AlertDialog(
-            onDismissRequest = { exampleDialog = false },
-            title = { Text("Substituir pelos dados de exemplo?") },
-            text = { Text("A simulação substituirá todos os valores salvos neste aparelho.") },
-            confirmButton = { TextButton(onClick = {
-                onBudgetChange(Budget(
-                    netSalaryCents = 300_000, rentCents = 135_000, foodOutsideCents = 80_000,
-                    electricityCents = 8_000, waterCents = 6_000,
-                    internetCents = 10_000, mobileCents = 3_000,
-                    transport = TransportConfig(570, 2, 22, TransportMode.CLT, 300_000)
-                ))
-                exampleDialog = false
-            }) { Text("Substituir") } },
-            dismissButton = { TextButton(onClick = { exampleDialog = false }) { Text("Cancelar") } }
-        )
+        ModernDialog("Carregar simulação?", { exampleDialog = false }, "Substituir", {
+            onBudgetChange(Budget(
+                netSalaryCents = 300_000, rentCents = 135_000, foodOutsideCents = 80_000,
+                electricityCents = 8_000, waterCents = 6_000,
+                internetCents = 10_000, mobileCents = 3_000,
+                transport = TransportConfig(570, 2, 22, TransportMode.CLT, 300_000)
+            ))
+            exampleDialog = false
+        }) {
+            Hint("Todos os valores atuais serão substituídos pelo exemplo de R$ 3.000. Os produtos e despesas cadastrados também serão removidos.")
+        }
     }
     if (clearDialog) {
-        AlertDialog(
-            onDismissRequest = { clearDialog = false },
-            title = { Text("Apagar todo o orçamento?") },
-            text = { Text("Esta ação remove os valores e produtos cadastrados. Não pode ser desfeita.") },
-            confirmButton = { TextButton(onClick = { onBudgetChange(Budget()); clearDialog = false }) {
-                Text("Apagar", color = Negative)
-            } },
-            dismissButton = { TextButton(onClick = { clearDialog = false }) { Text("Cancelar") } }
-        )
+        ModernDialog("Apagar orçamento?", { clearDialog = false }, "Apagar", {
+            onBudgetChange(Budget()); clearDialog = false
+        }, destructive = true) {
+            Hint("Esta ação remove todos os valores e produtos cadastrados. Não pode ser desfeita.")
+        }
     }
 }
 
 @Composable
-private fun CategoryCard(icon: String, title: String, detail: String, total: Long,
-                         route: String, onNavigate: (String) -> Unit) {
-    Card(
-        onClick = { onNavigate(route) },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 17.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(46.dp).background(Lilac, RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
-                Text(icon, fontSize = 23.sp, color = Purple, fontWeight = FontWeight.Bold)
+private fun CategoryTile(icon: String, title: String, subtitle: String, total: Long,
+                         route: String, onNavigate: (String) -> Unit, modifier: Modifier = Modifier) {
+    Surface(onClick = { onNavigate(route) }, modifier = modifier.height(139.dp),
+        shape = RoundedCornerShape(22.dp), color = Color.White, shadowElevation = 1.dp) {
+        Column(Modifier.fillMaxSize().padding(15.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(35.dp).clip(RoundedCornerShape(11.dp))
+                    .background(Lilac), contentAlignment = Alignment.Center) {
+                    Text(icon, fontSize = 21.sp, color = Purple, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.weight(1f))
+                Text("↗", color = Color(0xFF9676AD), fontSize = 17.sp)
             }
-            Spacer(Modifier.width(13.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, color = Ink, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(detail, color = Muted, fontSize = 11.sp)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(Money.format(total), color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                Text("›", color = Purple, fontSize = 24.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(title, color = Ink, fontWeight = FontWeight.Bold, fontSize = 14.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(subtitle, color = Muted, fontSize = 10.sp, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+                Text(Money.format(total), color = Purple, fontSize = 17.sp,
+                    fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

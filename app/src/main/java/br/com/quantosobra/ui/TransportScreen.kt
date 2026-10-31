@@ -1,6 +1,11 @@
 package br.com.quantosobra.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -74,8 +79,21 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
 @Composable
 private fun TransportOption(label: String, mode: TransportMode, selected: TransportMode,
                             onSelect: (TransportMode) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(selected = mode == selected, onClick = { onSelect(mode) })
-        Text(label, modifier = Modifier.weight(1f))
+    val active = mode == selected
+    Surface(
+        onClick = { onSelect(mode) },
+        color = if (active) Lilac else Color(0xFFF9F7FB),
+        shape = RoundedCornerShape(15.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(Modifier.padding(horizontal = 11.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(selected = active, onClick = { onSelect(mode) },
+                modifier = Modifier.size(44.dp))
+            Spacer(Modifier.width(3.dp))
+            Text(label, modifier = Modifier.weight(1f), fontSize = 13.sp,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                color = Ink)
+        }
     }
 }

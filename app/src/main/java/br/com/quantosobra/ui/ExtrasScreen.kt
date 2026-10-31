@@ -59,36 +59,39 @@ private fun ExtraDialog(initial: ExtraExpense?, dismiss: () -> Unit,
                         save: (String, OtherCategory, Long) -> Unit) {
     var name by remember(initial?.id) { mutableStateOf(initial?.name ?: "") }
     var category by remember(initial?.id) { mutableStateOf(initial?.category ?: OtherCategory.HEALTH) }
-    var amount by remember(initial?.id) { mutableStateOf(if ((initial?.amountCents ?: 0L) == 0L) "" else Money.input(initial!!.amountCents)) }
+    var amount by remember(initial?.id) {
+        mutableStateOf(if ((initial?.amountCents ?: 0L) == 0L) "" else Money.input(initial!!.amountCents))
+    }
     var expanded by remember { mutableStateOf(false) }
     val parsed = Money.parse(amount)
-    AlertDialog(
-        onDismissRequest = dismiss,
-        title = { Text(if (initial == null) "Nova despesa" else "Editar despesa") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { if (it.length <= 80) name = it },
-                    label = { Text("Nome da despesa") }, singleLine = true)
-                Box {
-                    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Categoria: ${category.displayName} ▾")
-                    }
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        OtherCategory.entries.forEach { option ->
-                            DropdownMenuItem(text = { Text(option.displayName) }, onClick = {
-                                category = option; expanded = false
-                            })
-                        }
-                    }
-                }
-                OutlinedTextField(amount, { if (it.length <= 19) amount = it },
-                    label = { Text("Valor mensal (R$)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true, isError = parsed == null)
+    ModernDialog(
+        title = if (initial == null) "Nova despesa" else "Editar despesa",
+        onDismiss = dismiss, confirmText = "Salvar",
+        confirmEnabled = name.isNotBlank() && parsed != null,
+        onConfirm = { if (parsed != null) save(name.trim(), category, parsed) }
+    ) {
+        OutlinedTextField(name, { if (it.length <= 80) name = it },
+            modifier = Modifier.fillMaxWidth(), label = { Text("Nome da despesa") },
+            singleLine = true,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp))
+        Box {
+            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("${category.displayName}  ▾")
             }
-        },
-        confirmButton = { TextButton(enabled = name.isNotBlank() && parsed != null,
-            onClick = { if (parsed != null) save(name.trim(), category, parsed) }) { Text("Salvar") } },
-        dismissButton = { TextButton(onClick = dismiss) { Text("Cancelar") } }
-    )
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                OtherCategory.entries.forEach { option ->
+                    DropdownMenuItem(text = { Text(option.displayName) }, onClick = {
+                        category = option; expanded = false
+                    })
+                }
+            }
+        }
+        OutlinedTextField(amount, { if (it.length <= 19) amount = it },
+            modifier = Modifier.fillMaxWidth(), label = { Text("Valor mensal") },
+            prefix = { Text("R$ ") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            singleLine = true, isError = parsed == null,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp))
+        Hint("Para compras parceladas, registre somente a parcela de cada mês.")
+    }
 }
