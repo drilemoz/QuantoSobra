@@ -66,7 +66,13 @@ data class TransportConfig(
     /** Para custeio percentual personalizado: desconto na folha ou pago por fora. */
     val customOnPayroll: Boolean = false,
     val commuteMode: CommuteMode = CommuteMode.PUBLIC,
-    val privateMonthlyCents: Long = 0
+    val privateMonthlyCents: Long = 0,
+    /** Calendário de trabalho configurável. Campos antigos permanecem compatíveis. */
+    val workSchedule: WorkSchedule = WorkSchedule.MANUAL,
+    val workWeekdaysMask: Int = 31,
+    val workCalendarMonth: String = "",
+    val workAnchorDate: String = "",
+    val customWorkDates: String = ""
 )
 
 data class Budget(
@@ -236,6 +242,32 @@ object Money {
         maximumFractionDigits = 2
         isGroupingUsed = true
     }.format(BigDecimal.valueOf(cents, 2))
+
+    /** Agrupa milhares enquanto se digita, sem inventar centavos nem deslocar a vírgula.
+     * "1600" -> "1.600"; "1600,5" -> "1.600,5"; "12.50" -> "12,50".
+     * Valor monetário continua sendo conferido por parse().
+     */
+    fun liveInput(raw: String): String {
+        val stripped = raw.replace("R$", "", ignoreCase = true).replace(" ", "")
+        if (stripped.isEmpty()) return ""
+        if (!stripped.matches(Regex("[0-9.,]+"))) return raw
+        val comma = stripped.lastIndexOf(',')
+        val dot = stripped.lastIndexOf('.')
+        val decimalIndex = when {
+            comma >= 0 -> comma
+            dot >= 0 && stripped.count { it == '.' } == 1 &&
+                stripped.length - dot - 1 <= 2 -> dot
+            else -> -1
+        }
+        val whole = (if (decimalIndex >= 0) stripped.substring(0, decimalIndex) else stripped)
+            .filter(Char::isDigit)
+        val fraction = if (decimalIndex >= 0) stripped.substring(decimalIndex + 1)
+            .filter(Char::isDigit).take(2) else ""
+        if (whole.length > 11) return raw
+        val grouping = (whole.trimStart('0').ifEmpty { "0" }).reversed()
+            .chunked(3).joinToString(".").reversed()
+        return if (decimalIndex >= 0) "$grouping,$fraction" else grouping
+    }
 
     /** Aceita 1.234,56, 1234.56, 1234 e 5,70. Valores negativos não são aceitos. */
     fun parse(raw: String): Long? {

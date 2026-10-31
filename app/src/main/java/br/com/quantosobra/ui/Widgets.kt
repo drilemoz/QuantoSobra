@@ -19,6 +19,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -32,46 +34,54 @@ fun SurfaceCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = Color.White,
-        shape = RoundedCornerShape(22.dp),
-        tonalElevation = 0.dp
+        shape = RoundedCornerShape(25.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 1.dp,
+        border = BorderStroke(0.5.dp, Color(0xFFE8E0EF))
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
     }
 }
 
 @Composable
-fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: String? = null) {
-    var input by remember { mutableStateOf(if (cents == 0L) "" else Money.inputGrouped(cents)) }
+fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: String? = null, compact: Boolean = false) {
+    var editor by remember { mutableStateOf(TextFieldValue(if (cents == 0L) "" else Money.inputGrouped(cents))) }
     var hasFocus by remember { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
-    // O estado local precisa acompanhar a limpeza/restauração ou uma alteração externa.
+    // Não substitui o texto enquanto o usuário digita; mantém os dados externos em sincronia.
     LaunchedEffect(cents) {
-        if (Money.parse(input) != cents) input = if (cents == 0L) "" else
-            if (hasFocus) Money.input(cents) else Money.inputGrouped(cents)
+        if (Money.parse(editor.text) != cents) {
+            val shown = if (cents == 0L) "" else Money.inputGrouped(cents)
+            editor = TextFieldValue(shown, TextRange(shown.length))
+        }
     }
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(if (compact) 1.dp else 5.dp)) {
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().onFocusChanged { focus ->
                 if (hasFocus != focus.isFocused) {
                     hasFocus = focus.isFocused
-                    input = if (cents == 0L && focus.isFocused) "" else
-                        if (focus.isFocused) Money.input(cents) else Money.inputGrouped(cents)
+                    if (focus.isFocused) editor = editor.copy(selection = TextRange(0, editor.text.length))
+                    else {
+                        val shown = if (cents == 0L) "" else Money.inputGrouped(cents)
+                        editor = TextFieldValue(shown, TextRange(shown.length))
+                    }
                 }
             },
-            value = input,
+            value = editor,
             onValueChange = { newValue ->
-                if (newValue.length <= 19) {
-                    input = newValue
-                    Money.parse(newValue)?.let(onChange)
+                if (newValue.text.length <= 19) {
+                    val shown = Money.liveInput(newValue.text)
+                    editor = TextFieldValue(shown, TextRange(shown.length))
+                    Money.parse(shown)?.let(onChange)
                 }
             },
-            label = { Text(label) },
+            label = { Text(label, fontSize = if (compact) 12.sp else 14.sp) },
             prefix = { Text("R$ ") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
-            supportingText = { Text("Ex.: 12,00 ou 12.00", fontSize = 10.sp) },
-            isError = Money.parse(input) == null,
+            supportingText = if (compact) null else ({ Text("Ex.: 12,00 ou 12.00", fontSize = 10.sp) }),
+            isError = Money.parse(editor.text) == null,
             shape = RoundedCornerShape(15.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedBorderColor = Color(0xFFE6DDEA),
@@ -92,12 +102,12 @@ fun CurrencyTextEntry(label: String, value: String, onChange: (String) -> Unit) 
             if (focused != focus.isFocused) {
                 focused = focus.isFocused
                 Money.parse(value)?.let { cents ->
-                    onChange(if (focused) Money.input(cents) else Money.inputGrouped(cents))
+                    onChange(Money.inputGrouped(cents))
                 }
             }
         },
         value = value,
-        onValueChange = { if (it.length <= 19) onChange(it) },
+        onValueChange = { if (it.length <= 19) onChange(Money.liveInput(it)) },
         label = { Text(label) },
         prefix = { Text("R$ ") },
         isError = Money.parse(value) == null,
@@ -171,18 +181,24 @@ fun Page(
                 .padding(start = 18.dp, end = 18.dp, bottom = 26.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
+                .background(Brush.horizontalGradient(listOf(Color(0xFF8C29D6), DeepPurple)))) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 17.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(title, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                    Text(subtitle, fontSize = 12.sp, color = Muted)
+                    Text("✦  SEU ORÇAMENTO", fontSize = 10.sp, color = Color(0xFFE8C9FF),
+                        fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text(title, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    Text(subtitle, fontSize = 12.sp, color = Color(0xFFE9D8F6))
                 }
                 Surface(
                     onClick = onBack, modifier = Modifier.size(42.dp).semantics { contentDescription = "Fechar painel" }, shape = CircleShape,
-                    color = Lilac
+                    color = Color.White.copy(alpha = .18f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text("×", fontSize = 25.sp, color = DeepPurple)
+                        Text("×", fontSize = 25.sp, color = Color.White)
                     }
+                }
                 }
             }
             Spacer(Modifier.height(2.dp))

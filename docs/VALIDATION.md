@@ -1,22 +1,20 @@
-# Validação — 0.1.0-alpha.7 (31/10/2026)
+# Validação — 0.1.0-alpha.8 (31/10/2026)
 
-## Escopo
+- Base real: fonte 0.1.0-alpha.7, mantendo namespace `br.com.quantosobra`, build Release assinado opcional, SharedPreferences `quanto_sobra_v1` e dados anteriores.
+- JSON schema 4: campos opcionais `workSchedule`, `weekdays`, `calendarMonth`, `anchorDate`, `customDates`. Leitor aceita ausências (JSON v1–v3), mantendo `daysPerMonth` legado.
+- Widget monetário usa formatação em tempo real, seleciona todo o texto ao receber foco e não converte inteiros para centavos por deslocamento.
+- Wizard utiliza coluna não rolável e oculta cabeçalho/rodapé durante IME; alturas e fontes grandes ainda devem ser verificadas em aparelhos reais.
+- Calendário usa mês real do dispositivo, não pressupõe feriados, valida dias e recalcula ao mudar escala/mês.
+- Benefícios e descontos CLT mantidos separados do vale-transporte, sem dupla subtração. Valores de alimentação não são renda em dinheiro.
 
-- Partiu da alpha.6 real, manteve ID `br.com.quantosobra`, assinatura opcional via Secrets e dados salvos em `quanto_sobra_v1`.
-- Schema 3: campos novos opcionais; a leitura antiga sem esses dados usa aluguel/IPTU mensais, transporte público e modo de salário anterior.
-- `wizard_completed` default para `prefs.contains("budget")`, para não interromper atualizações de usuários existentes.
-- O wizard não usa `LazyColumn` ou `verticalScroll` e reduz UI quando o teclado está aberto; validar alturas, fontes grandes e teclado no Android real.
-- Salários CLT usam cálculo 2026 existente; outros vínculos não herdam automaticamente INSS/IRRF CLT.
-- Sem chave privada ou Secret no ZIP.
+## Testes locais
 
-## Verificações locais
-
-- Domínio compilado com `kotlinc`; **16 de 16 testes** aprovados por executor compatível JUnit (não é Gradle/JUnit real).
-- Análise sintática Kotlin por parser PSI: **14 arquivos**, **0 erros**.
-- XML, YAML e integridade/CRC do ZIP verificados.
+- Kotlin/JVM: **20 testes aprovados** em executor de asserções compatíveis com JUnit, incluindo novos testes para formato dinâmico, calendário semanal, 12×36, datas livres e desconto VT.
+- PSI Kotlin: **13 arquivos no código principal, 0 erros sintáticos** (análise de sintaxe, não compilação Android).
+- YAML, XML, integridade e CRC do ZIP, coerência de versão: verificação local após empacotamento.
 
 ## Pendências
 
-- Ainda não foi executado `:app:assembleDebug`, `:app:assembleRelease` nem teste de interface em celular/emulador. Verificar geração de APK no GitHub Actions.
-- Responsividade em celulares pequenos, telas com fontes ampliadas, aparição do teclado, retomada do assistente e fórmulas no aparelho dependem de teste real.
-- A simulação salarial não substitui folha de pagamento oficial.
+- `:app:assembleDebug`, `:app:assembleRelease` e `:app:testDebugUnitTest` reais ainda precisam passar no GitHub Actions.
+- Testar responsividade, fontes ampliadas, teclado, mudança de mês, seleção de dias no calendário e atualização sobre a alpha.7 com dados reais no aparelho.
+- Cálculos tributários e de benefício são simulações simplificadas; condições específicas podem alterar o holerite.

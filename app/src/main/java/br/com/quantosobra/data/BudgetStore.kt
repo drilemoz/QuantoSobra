@@ -101,7 +101,13 @@ class BudgetStore(context: Context) {
                 basicSalaryCents = t.nonNegativeLong("basicSalary"),
                 companyPercent = t.nonNegativeInt("companyPercent", 50, 100),
                 deductedFromNetSalary = t.optBoolean("alreadyDeducted", false),
-                customOnPayroll = t.optBoolean("customOnPayroll", false)
+                customOnPayroll = t.optBoolean("customOnPayroll", false),
+                workSchedule = WorkSchedule.entries.find { it.name == t.optString("workSchedule") }
+                    ?: WorkSchedule.MANUAL,
+                workWeekdaysMask = t.nonNegativeInt("weekdays", 31, 127),
+                workCalendarMonth = t.optString("calendarMonth").take(7),
+                workAnchorDate = t.optString("anchorDate").take(10),
+                customWorkDates = t.optString("customDates").take(5000)
             ),
             extras = extras,
             reserveCents = j.nonNegativeLong("reserve")
@@ -109,7 +115,7 @@ class BudgetStore(context: Context) {
     }
 
     private fun toJson(b: Budget): JSONObject = JSONObject().apply {
-        put("schema", 3)
+        put("schema", 4)
         put("workType", b.workType.name)
         put("rentPeriod", b.rentPeriod.name)
         put("iptuPeriod", b.iptuPeriod.name)
@@ -162,6 +168,11 @@ class BudgetStore(context: Context) {
             put("companyPercent", b.transport.companyPercent)
             put("alreadyDeducted", b.transport.deductedFromNetSalary)
             put("customOnPayroll", b.transport.customOnPayroll)
+            put("workSchedule", b.transport.workSchedule.name)
+            put("weekdays", b.transport.workWeekdaysMask)
+            put("calendarMonth", b.transport.workCalendarMonth)
+            put("anchorDate", b.transport.workAnchorDate)
+            put("customDates", b.transport.customWorkDates)
         })
     }
 }

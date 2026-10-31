@@ -1,15 +1,13 @@
-# Quanto Sobra? — 0.1.0-alpha.7
+# Quanto Sobra? — 0.1.0-alpha.8
 
-**31/10/2026 · versionCode 7**
+**31/10/2026 · versionCode 8**
 
-- Assistente de primeiro acesso com 8 etapas, sem rolagem entre campos. Botões Voltar, Continuar e Definir depois, cada etapa de preenchimento é curta.
-- Vínculo CLT, MEI/PJ, autônomo/informal, servidor público e outra renda. Cálculo automático da folha de pagamento apenas para CLT; outros vínculos são registrados sem descontos presumidos.
-- Transporte público, carro/moto, bicicleta/pé e home office; vale-transporte CLT sincronizado com salário para não debitar duas vezes.
-- Aluguel e IPTU com opção mensal/anual: equivalente mensal calculado pelo app.
-- Alimentação com estimativa inicial e botão discreto de produtos essenciais sem preços inventados; preços reais cadastrados manualmente.
-- Campos monetários aceitam `12`, `12.00` e `12,00` e ficam pontuados em pt-BR (`12,00`) após a edição. Teclado decimal, botão Concluído e ajustes para IME.
-- A tela principal e os painéis inferiores continuam disponíveis; usuários existentes preservam orçamento e podem abrir o wizard pelo menu `$`.
-- Persistência JSON schema 3 com retrocompatibilidade v1 e v2, mesmo pacote e mesmas SharedPreferences.
-- Workflow de assinatura opcional mantido. **Não inclui Secrets ou chave privada.**
+- Nova experiência de primeiro acesso em 11 etapas, sem rolagem: cartão de escolha, progresso visível e opção Definir depois.
+- Valores em R$ formatados **enquanto digita**, sem transformar `1600` em `16,00`.
+- Calendário para contar dias de trabalho: Seg–Sex, 12×36 ou escolha de datas; os dias influenciam o custo do transporte.
+- Benefícios e descontos no wizard: VA/VR, saúde e valores descontados da folha, com vale-transporte sincronizado.
+- Moradia com aluguel, condomínio e IPTU, incluindo valores anuais; contas da casa e alimentação no próprio assistente.
+- JSON schema 4 com compatibilidade retroativa; mesmo ID Android e mesmas credenciais de assinatura da alpha.6.
+- Testes locais de domínio e parser Kotlin executados. Compilação completa, testes de acessibilidade e interação no celular pendentes.
 
-**Validação:** testes Kotlin/JVM com executor local compatível e análise sintática PSI; compilação Android Gradle e testes físicos de layout/teclado ainda pendentes.
+**Atenção:** a formatação monetária e o calendário precisam ser conferidos no APK real. O app não substitui holerite oficial.

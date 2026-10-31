@@ -1,11 +1,15 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.8 (31/10/2026)
+
+Redesign do wizard para 11 etapas sem rolagem, cartões selecionáveis, cabeçalho gradiente e resumo do orçamento. Formatação monetária durante a digitação com seleção do valor anterior ao focar, sem deslocamento automático de centavos. Calendário de trabalho com semana padrão, escala 12×36 e marcação manual de datas; apuração de dias para o mês selecionado integrada ao transporte. Etapa inicial de benefícios/descontos: VA/VR utilizado, desconto de vale-alimentação na folha, plano de saúde e outros descontos CLT. Moradia com aluguel mensal/anual, condomínio e IPTU mensal/anual; contas domésticas já no assistente. Alimentação com estimativa, refeições e lista de essenciais sem preços inventados. Persistência schema 4 retrocompatível com schema 1–3, mantendo package ID, Secrets e chave de assinatura. Testes locais de domínio (20) e análise PSI de Kotlin; compilação Android completa e validação de tela/teclado ainda pendentes.
+
 ## 0.1.0-alpha.7 (31/10/2026)
 
 Primeiro acesso com wizard de 8 passos compactos sem rolagem, perguntas de vínculo, renda, deslocamento, vale-transporte, aluguel, alimentação e prévia do saldo. Botões Voltar/Continuar/Definir depois, com seleção de transporte e benefícios sincronizada ao orçamento. Aluguel e IPTU anuais agora são convertidos em equivalente mensal automaticamente; transporte próprio tem custo mensal. Na alimentação, estimativa inicial convive sem dupla contagem com produtos detalhados; ação discreta acrescenta nomes de alimentos essenciais com preço zero, para o usuário completar. Valores `12`, `12.00`, `12,00` aceitos e formatados com pontuação brasileira após edição em campos e diálogos. Persistência JSON schema 3 com defaults para versões antigas; menu `$` permite reabrir o assistente. Mantido workflow de assinatura opcional, sem novas credenciais. `versionCode 7`, documentação e nomes dos Artifacts sincronizados. Compilação real no Android/GitHub Actions pendente.
 
 
-## 0.1.0-alpha.7 (31/10/2026)
+## 0.1.0-alpha.6 (31/10/2026)
 
 Adicionada assinatura **Release opcional** por quatro Secrets GitHub (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`). O CI continua gerando Debug sem Secrets e, quando todos estiverem presentes, decodifica a keystore temporariamente no runner, compila Release assinado, publica Artifact separado e remove o arquivo temporário. Configuração Gradle com assinatura condicional via variáveis de ambiente (nunca inclui chave/senha no código). `.gitignore` protege arquivos de assinatura e exportações de Secrets. versionCode/versionName 6, interface e docs sincronizados. Cálculos, persistência e UI da alpha.5 preservados. Build Android/assinatura real dependem da execução do CI.
 

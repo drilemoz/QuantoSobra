@@ -151,7 +151,7 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
         Page("Seu espaço", "Preferências e informações do aplicativo", { optionsDialog = false }) {
             SurfaceCard {
                 Text("Quanto Sobra?", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                Text("Versão 0.1.0-alpha.7", fontSize = 12.sp, color = Muted)
+                Text("Versão 0.1.0-alpha.8", fontSize = 12.sp, color = Muted)
                 HorizontalDivider(color = Lilac)
                 Text("Simule seu orçamento com privacidade. Tudo fica neste dispositivo.", fontSize = 13.sp, color = Muted)
                 OutlinedButton(onClick = { optionsDialog = false; onRestartWizard() },

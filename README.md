@@ -2,22 +2,23 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.7` · **versionCode:** `7` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.8` · **versionCode:** `7` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
 
-## Novo primeiro acesso — wizard (alpha.7)
+## Assistente inicial redesenhado — alpha.8
 
-- Primeira instalação sem orçamento salvo: 8 etapas compactas, cada uma com poucas escolhas/campos, **sem rolagem**. Botões Continuar/Voltar e **Definir depois** em etapas opcionais. O orçamento só é salvo ao concluir.
-- Etapas: tipo de vínculo, renda mensal, como vai ao trabalho, custo do deslocamento, subsídio da empresa, aluguel, alimentação e resumo.
-- Para **CLT**, cálculos automáticos de INSS/IRRF 2026 e desconto de vale-transporte quando configurado. Para MEI/PJ, autônomo, servidor e outra renda não aplica indevidamente o desconto CLT.
-- Moradia com aluguel e IPTU mensal/anual; valores anuais são convertidos em equivalentes mensais sem divisão manual.
-- O painel de Alimentação aceita estimativa do supermercado e uma lista discreta de **essenciais**: arroz, feijão, óleo, sal, ovos, macarrão, leite e café, adicionados **sem preços**. A estimativa continua durante preenchimento parcial; o detalhamento completo substitui a estimativa sem somar ambos.
-- Digite `12`, `12.00`, `12,00` ou `1.234,56`: campos interpretam como reais e formatam com vírgula decimal/ponto de milhar ao perder foco. Durante a digitação não reordenam o cursor.
-- Dados já existentes não forçam refazer onboarding; menu `$` → **Refazer configuração guiada** para executar novamente.
-- Persistência JSON schema 3 compatível com dados antigos, mesmo pacote. O wizard não é confirmação de valor real do contracheque.
+- **11 etapas sem rolagem**: vínculo, salário, benefícios/descontos, transporte, calendário de trabalho, passagens, participação da empresa, moradia, contas domésticas, alimentação e resumo financeiro.
+- Visual autoral com gradientes, formas, cartões selecionáveis, indicador de avanço e contraste. **Voltar**, **Continuar** e **Definir depois**; rascunho salvo somente ao concluir.
+- **Valores em reais pontuados durante a digitação**, preservando o significado natural do número: `1600` → `1.600`, `12.50` → `12,50`, `1.234,56` → `1.234,56`; ao sair do campo, exibe duas casas decimais. Foco seleciona o texto existente para facilitar a substituição.
+- Calendário local para escolher mês e escala **segunda a sexta**, **12×36** (com dia de referência), ou **marcação de datas individuais**. Os dias do mês selecionado alimentam o custo do transporte automaticamente, com opção de correção manual. Feriados e folgas não são inferidos.
+- Wizard inclui **VR/VA como crédito usado**, plano de saúde, desconto de VR/VA no contracheque, outros descontos CLT e vale-transporte, com cálculo único e sem duplicação.
+- Moradia já inclui **aluguel, condomínio e IPTU**, com periodicidade mensal/anual e conversão para equivalente mensal. Contas de energia, água, internet e celular entram no fluxo.
+- Lista discreta de produtos essenciais sem preços fictícios. Mercado estimado continua válido até que a lista seja totalmente preenchida.
+- Schema JSON **4**, retrocompatível com os dados v1, v2 e v3. Contém escala/dias selecionados e mês de referência; não altera pacote nem assinatura Release. Usuários existentes não são forçados a refazer o wizard: use menu `$` → Refazer configuração guiada.
+- A simulação de INSS e IRRF 2026 é simplificada para CLT. Rendas MEI/PJ/autônomas/servidores não recebem descontos CLT arbitrários. Confira o holerite real.
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.7-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.8-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -82,16 +83,17 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.7-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.8-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.
 
 ## Arquitetura
 
+- `domain/WorkCalendar.kt`: escala semanal, 12×36 e dias escolhidos por data.
 - `domain/Budget.kt`: dados, regras de orçamento, dinheiro em centavos, transporte e cálculo de produtos, sem dependência do Android.
-- `data/BudgetStore.kt`: persistência local com JSON schema 3 e leitura retrocompatível.
-- `ui/`: wizard compacto, dashboard Compose, modais inferiores, diálogos, campos com normalização monetária, tema e componentes reutilizáveis.
+- `data/BudgetStore.kt`: persistência local com JSON schema 4 e leitura retrocompatível.
+- `ui/`: wizard compacto, dashboard Compose, modais inferiores, diálogos, campos com formatação monetária em tempo real, tema e componentes reutilizáveis.
 - `MainActivity.kt`: dashboard fixo, estado único e exibição contextual de modais, sem biblioteca de navegação externa.
 
 ## Limitações atuais
