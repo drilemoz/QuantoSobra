@@ -1,6 +1,6 @@
 # Versionamento — Quanto Sobra?
 
-- Atual: `0.1.0-alpha.10`, `versionCode 10`.
+- Atual: `0.1.0-alpha.11`, `versionCode 11`.
 - Próxima alteração: `0.1.0-alpha.11`, `versionCode 11`.
 - Pacote fixo: `br.com.quantosobra`.
 - Sincronizar Gradle, workflow Artifact, README, CHANGELOG, RELEASE_NOTES, docs/VALIDATION e interface.

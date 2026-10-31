@@ -64,6 +64,9 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             } else {
                 FieldAmount("Salário bruto mensal", s.grossCents, { update(s.copy(grossCents = it)) })
                 Hint("Para empregado CLT com um único vínculo e salário mensal fixo. Esta é uma estimativa, não substitui o holerite.")
+                HorizontalDivider(color = Lilac)
+                MinimumWageBox(applyToSalary = { update(s.copy(grossCents = it)) })
+                Hint("O mínimo é uma referência BRUTA, não o valor líquido depois do INSS. Só muda seu salário se você tocar em Usar.")
             }
         }
         if (isGross) {
@@ -86,8 +89,8 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 }
                 if (s.autoIrrf) FieldCount("Dependentes para IRRF", s.dependents, 0..20,
                     { update(s.copy(dependents = it)) })
-                Hint("INSS e IRRF usam tabelas oficiais de 2026, com simplificações para salário mensal.")
-                TextButton(onClick = { showRules = true }) { Text("ⓘ Entenda descontos e percentuais", color = Purple) }
+                Hint("INSS é progressivo: 7,5%, 9%, 12% e 14% apenas sobre cada faixa, não sobre todo o salário. IRRF depende da base tributável e de deduções.")
+                TextButton(onClick = { showRules = true }) { Text("ⓘ Ver faixas, alíquotas e valores descontados", color = Purple) }
             }
             SurfaceCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -199,6 +202,6 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             Hint("Informe apenas o que sua empresa realmente desconta. O vale-transporte já vem da tela Transporte.")
         }
     }
-    if (showRules) PayrollRulesDialog { showRules = false }
+    if (showRules) PayrollRulesDialog(b) { showRules = false }
 }
 

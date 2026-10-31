@@ -10,8 +10,13 @@ data class ReleaseEntry(
 )
 
 object ReleaseCatalog {
-    const val currentVersion = "0.1.0-alpha.10"
+    const val currentVersion = "0.1.0-alpha.11"
     val recent = listOf(
+        ReleaseEntry("0.1.0-alpha.11", "31/10/2026", "Salário explicado, sem surpresas", listOf(
+            ReleaseFeature("Consultar salário mínimo", "Consulta a base do Banco Central, pode editar a referência ou aplicá-la ao bruto quando quiser."),
+            ReleaseFeature("Entender descontos", "Veja parcelas do INSS por faixa, percentuais e o líquido separado do salário bruto."),
+            ReleaseFeature("Digitação corrigida", "Apagar dígitos de um valor com ponto de milhar não transforma reais em centavos.")
+        )),
         ReleaseEntry("0.1.0-alpha.10", "31/10/2026", "Seu trabalho, seus números", listOf(
             ReleaseFeature("Escalas e calendário", "Visual com cartões 5×2, 6×1, 12×36, 4×3 ou personalizado, com dias recalculados ao toque."),
             ReleaseFeature("Compras organizadas", "Escolha produtos essenciais ou cadastre e edite preços, quantidades e unidades."),

@@ -186,6 +186,8 @@ data class SalaryBreakdown(
     val totalDeductionsCents: Long get() = inssCents + irrfCents + transportCents + otherCents
 }
 
+data class InssTier(val rateLabel: String, val portionCents: Long, val deductionCents: Long)
+
 /** CLT mensal 2026, vínculo único e sem outras bases tributárias; é uma simulação. */
 object SalaryMath {
     private fun roundedCents(value: BigDecimal): Long =
@@ -206,12 +208,34 @@ object SalaryMath {
         return roundedCents(sum)
     }
 
+    /** Parcela por faixa, com distribuição do arredondamento para igualar o total do INSS. */
+    fun inssTiers2026(grossCents: Long): List<InssTier> {
+        val amount = grossCents.coerceIn(0L, 847_555L)
+        val limits = longArrayOf(162_100L, 290_284L, 435_427L, 847_555L)
+        val rates = arrayOf("0.075", "0.09", "0.12", "0.14")
+        val labels = arrayOf("7,5%", "9%", "12%", "14%")
+        var previous = 0L
+        var total = BigDecimal.ZERO
+        var alreadyRounded = 0L
+        return limits.indices.map { index ->
+            val portion = (min(amount, limits[index]) - previous).coerceAtLeast(0L)
+            total = total.add(BigDecimal.valueOf(portion).multiply(BigDecimal(rates[index])))
+            val rounded = roundedCents(total)
+            val result = InssTier(labels[index], portion, rounded - alreadyRounded)
+            alreadyRounded = rounded
+            previous = limits[index]
+            result
+        }
+    }
+
+    fun irrfBase2026(grossCents: Long, inssCents: Long, dependents: Int): Long =
+        (grossCents.coerceAtLeast(0L) - maxOf(60_720L,
+            inssCents.coerceAtLeast(0L) + dependents.coerceIn(0, 20) * 18_959L)).coerceAtLeast(0L)
+
     /** IRRF 2026: desconto simplificado ou deduções legais, redução até R$ 7.350. */
     fun irrf2026(grossCents: Long, inssCents: Long, dependents: Int = 0): Long {
         val gross = grossCents.coerceAtLeast(0L)
-        val legal = inssCents.coerceAtLeast(0L) + dependents.coerceIn(0, 20) * 18_959L
-        val deduction = maxOf(60_720L, legal)
-        val base = (gross - deduction).coerceAtLeast(0L)
+        val base = irrfBase2026(gross, inssCents, dependents)
         val (rate, subtraction) = when {
             base <= 242_880L -> "0" to 0L
             base <= 282_665L -> "0.075" to 18_216L
@@ -263,7 +287,7 @@ object Money {
      * "1600" -> "1.600"; "1600,5" -> "1.600,5"; "12.50" -> "12,50".
      * Valor monetário continua sendo conferido por parse().
      */
-    fun liveInput(raw: String): String {
+    fun liveInput(raw: String, previous: String = ""): String {
         val value = raw.replace("R$", "", ignoreCase = true).trim().replace(" ", "")
         if (value.isEmpty()) return ""
         if (!value.matches(Regex("[0-9.,]+"))) return raw
@@ -271,8 +295,12 @@ object Money {
         val lastDot = value.lastIndexOf('.')
         // Vírgula sempre representa decimais; ponto é decimal quando há 1 ou 2 casas.
         // Um ponto com três dígitos à direita é separador de milhar.
+        val existingGroupingDot = previous.contains('.') && !previous.contains(',') &&
+            value.contains('.') && value.count(Char::isDigit) <= previous.count(Char::isDigit)
         val decimal = when {
             lastComma >= 0 -> lastComma
+            // O ponto já estava no texto como milhar; apagar um dígito NÃO o transforma em centavos.
+            existingGroupingDot -> -1
             lastDot >= 0 && value.count { it == '.' } == 1 && value.length - lastDot - 1 <= 2 -> lastDot
             else -> -1
         }
@@ -283,6 +311,11 @@ object Money {
             .chunked(3).joinToString(".").reversed()
         return if (decimal >= 0) "$grouping,$fractionalPart" else grouping
     }
+
+    /** O ponto antigo era separador de milhar, mesmo se o usuário apagar um dígito. */
+    fun isEditingGrouping(raw: String, previous: String): Boolean =
+        previous.contains('.') && !previous.contains(',') && raw.contains('.') &&
+            raw.count(Char::isDigit) <= previous.count(Char::isDigit)
 
     /** Conserva a posição lógica do cursor quando são inseridos pontos de milhar. */
     fun caretAfterFormatting(original: String, originalCaret: Int, formatted: String): Int {

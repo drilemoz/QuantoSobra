@@ -2,7 +2,15 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.10` · **versionCode:** `10` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.11` · **versionCode:** `11` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Salário mínimo online e correção monetária — alpha.11
+
+- Novo botão **Consultar online** consulta exclusivamente a série SGS 1619 do Banco Central (HTTPS). A consulta é iniciada pelo usuário; falha de rede mantém a referência offline (R$ 1.621,00 bruto de janeiro/2026). Não há login, telemetria ou envio de dados do orçamento. A resposta é validada (data não futura, valor positivo e formato correto).
+- **Alterar** edita a referência local; **Usar** preenche o salário bruto somente mediante toque. Consultar ou alterar não sobrescreve o salário pessoal automaticamente. Mostra a origem e a data da referência.
+- Wizard mostra bruto, INSS, IRRF e líquido como valores diferentes. Um pop-up exibe faixas de INSS, alíquotas marginais e desconto por faixa, alíquota efetiva, base estimada do IRRF, VT e total descontado.
+- Corrige o caso observado ao apagar o último dígito: `1.621` → `162` (não `1,62`); também `9.460` → `946` (não `9,46`). Mantém dígitos reais e separadores decimais digitados explicitamente.
+- A consulta é opcional: app financeiro e demais recursos continuam offline. Requer apenas `android.permission.INTERNET` para a consulta ativa.
 
 ## Calendário, compras e regras — alpha.10
 
@@ -12,7 +20,7 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 - **Contas da casa:** somente energia, água e internet. Celular, gás e outras contas preexistentes são exibidos em Outros gastos e continuam somados uma única vez.
 - **Transporte:** custeio integral, pelo trabalhador, vale-transporte CLT, porcentagem da empresa ou auxílio mensal fixo; opção de desconto em folha para custeio personalizado e explicação da Lei 7.418/1985 (regra geral de até 6% do salário básico).
 - **Salário:** pop-up educativo sobre INSS/IRRF 2026, vale-transporte, PAT (participação do trabalhador até 20% do custo direto do benefício) e FGTS (encargo do empregador). Descontos manuais podem ser por valor fixo ou percentual do bruto/VA-VR, com base explícita e recalculada automaticamente.
-- **Persistência:** JSON schema 5, valores anteriores mantidos; `versionCode 10`, `targetSdk 36`, ID e quatro Secrets de assinatura preservados. As novas regras são estimativas; confira sempre o contracheque.
+- **Persistência:** JSON schema 5, valores anteriores mantidos; `versionCode 11`, `targetSdk 36`, ID e quatro Secrets de assinatura preservados. As novas regras são estimativas; confira sempre o contracheque.
 - **Validação local:** 30 testes do domínio com executor de asserções compatível com JUnit e parser sintático Kotlin. Gradle/Android completo e visual no aparelho pendentes.
 
 ## Novidades e configurações — alpha.9
@@ -38,7 +46,7 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.10-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.11-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -103,7 +111,7 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.10-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.11-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.

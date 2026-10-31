@@ -133,9 +133,21 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                             }, compact = true)
                         if (!imeVisible) {
                             HorizontalDivider(color = Lilac)
-                            WizardAmountLine(if (clt) "Líquido estimado" else "Renda informada",
+                            if (clt) {
+                                WizardAmountLine("Bruto informado", s.grossCents)
+                                WizardAmountLine("INSS estimado", SalaryMath.breakdown(budget).inssCents)
+                                WizardAmountLine("IRRF estimado", SalaryMath.breakdown(budget).irrfCents)
+                            }
+                            WizardAmountLine(if (clt) "Líquido após descontos" else "Renda informada",
                                 BudgetMath.salaryNet(budget), true)
                         }
+                    }
+                    if (clt && !imeVisible) WizardPanel {
+                        MinimumWageBox(compact = true, applyToSalary = { minimum ->
+                            set(budget.copy(salary = s.copy(grossCents = minimum, mode = SalaryMode.GROSS)))
+                        })
+                        Text("Mínimo nacional BRUTO. O líquido é menor devido aos descontos indicados acima.",
+                            color = Muted, fontSize = 10.sp)
                     }
                     if (!imeVisible) {
                         OutlinedButton(onClick = { showSalaryRules = true }, modifier = Modifier.fillMaxWidth(),
@@ -351,7 +363,7 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
             }
         }
     }
-    if (showSalaryRules) PayrollRulesDialog { showSalaryRules = false }
+    if (showSalaryRules) PayrollRulesDialog(budget) { showSalaryRules = false }
     if (chooseEssential) EssentialsPicker(
         currentNames = budget.foodProducts.map { it.name }.toSet(),
         dismiss = { chooseEssential = false },

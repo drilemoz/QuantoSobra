@@ -1,9 +1,7 @@
-# Validação — 0.1.0-alpha.10 (31/10/2026)
+# Validação — 0.1.0-alpha.11 (31/10/2026)
 
-- Base: código-fonte alpha.9 recuperado do Google Drive, com dados offline, ID e assinatura opcional mantidos.
-- Domínio monetário e escalas: testes da suíte + novos casos de valores 900, dias 5×2/6×1/4×3, auxílio fixo, percentuais, prevenção de duplo desconto e preservação de custos de chip/gás.
-- 30 testes aprovados pelo `kotlinc` local e executor de asserções compatível com JUnit. **Não é** a execução JUnit do Gradle.
-- Análise sintática via Kotlin PSI dos arquivos Kotlin; compilação UI Compose/Android não está disponível no ambiente.
-- Salário com valores percentuais aplica base identificada; PAT/VT são orientações informativas, nunca descontos silenciosos.
-- Schema JSON v5 aditivo, com leitura padrão para campos ausentes; requer teste de upgrade no aparelho.
-- Pendente: `:app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleRelease` via CI e teste visual de calendário, teclado e pop-ups no aparelho real.
+- Base: alpha.10 real. Vídeo recebido de 29,9 segundos analisado: ponto de milhar convertido indevidamente em separador decimal após backspace.
+- 36/36 testes locais Kotlin/JVM aprovados com runner JUnit compatível; testes adicionais de regressão monetária, faixas INSS, mínimo bruto vs líquido, JSON SGS e datas futuras.
+- Análise Kotlin PSI de todas as fontes `.kt` sem erros sintáticos. Manifest com INTERNET para consulta opt-in.
+- Não houve compilação Android real, teste de HTTPS no aparelho nem build Release; `:app:testDebugUnitTest`, `:app:assembleDebug` e `:app:assembleRelease` dependem do CI. Conferir interações e máscaras no teclado Android.
+- Cache do salário mínimo é separado dos dados financeiros; não altera salário do usuário sem ação explícita.

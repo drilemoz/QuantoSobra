@@ -1,6 +1,13 @@
 # Histórico de alterações
 
-## 0.1.0-alpha.10 (31/10/2026)
+## 0.1.0-alpha.11 (31/10/2026)
+
+- Integra consulta manual do salário mínimo nacional pelo SGS 1619/BCB, com cache offline, validação de vigência, edição manual e aplicação explícita ao salário.
+- Distinção visual entre mínimo bruto, salário bruto, INSS, IRRF e salário líquido, com faixas e percentuais do INSS 2026 e explicação contextual no wizard e na central de salário.
+- Correção do ponto de milhar ao apagar dígitos (`1.621` não pode se tornar `1,62`); testes de regressão para digitação, salário mínimo e datas futuras.
+- Versionamento 11, sem alterar ID do aplicativo ou Secrets de assinatura; permissão INTERNET apenas para consulta solicitada.
+
+
 
 Wizard com seletor visual de escalas 5×2, 6×1, 12×36, 4×3 e personalizada, calendário ajustável e apuração automática de dias/folgas; sincronizado também com Transporte. Ajuste de valores digitados em reais com milhar/cursor, sem deslocamento de centavos. Alimentação passa a oferecer escolha de produtos essenciais ou cadastro manual, edição de unidade, quantidade e preço. Contas da casa restritas a água, energia e internet; valores antigos de chip, gás e demais contas realocados visualmente para Outros gastos, sem perda nem duplicação. Transporte acrescenta auxílio fixo e explicação do VT CLT; salário oferece regras informativas de INSS/IRRF/PAT e descontos manuais fixos ou percentuais com base identificada. JSON schema 5 retrocompatível, versionamento e Artifacts sincronizados, assinatura e Secrets existentes preservados. 30 testes locais de domínio aprovados; Gradle/Android completo ainda não executado.
 

@@ -50,7 +50,7 @@ fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: Stri
     val keyboard = LocalSoftwareKeyboardController.current
     // Não substitui o texto enquanto o usuário digita; mantém os dados externos em sincronia.
     LaunchedEffect(cents) {
-        if (Money.parse(editor.text) != cents) {
+        if (!hasFocus && Money.parse(editor.text) != cents) {
             val shown = if (cents == 0L) "" else Money.inputGrouped(cents)
             editor = TextFieldValue(shown, TextRange(shown.length))
         }
@@ -70,7 +70,7 @@ fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: Stri
             value = editor,
             onValueChange = { newValue ->
                 if (newValue.text.length <= 19) {
-                    val shown = Money.liveInput(newValue.text)
+                    val shown = Money.liveInput(newValue.text, editor.text)
                     editor = TextFieldValue(shown, TextRange(Money.caretAfterFormatting(
                         newValue.text, newValue.selection.start, shown)))
                     Money.parse(shown)?.let(onChange)
@@ -108,7 +108,7 @@ fun CurrencyTextEntry(label: String, value: String, onChange: (String) -> Unit) 
             }
         },
         value = value,
-        onValueChange = { if (it.length <= 19) onChange(Money.liveInput(it)) },
+        onValueChange = { if (it.length <= 19) onChange(Money.liveInput(it, value)) },
         label = { Text(label) },
         prefix = { Text("R$ ") },
         isError = Money.parse(value) == null,
