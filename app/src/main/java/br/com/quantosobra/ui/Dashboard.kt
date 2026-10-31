@@ -109,7 +109,7 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit, onBudgetChange: (Bud
                 Text("Simulações ficam salvas somente neste aparelho.", color = Muted, fontSize = 12.sp)
                 TextButton(onClick = { exampleDialog = true }) { Text("Carregar exemplo de R$ 3.000") }
                 TextButton(onClick = { clearDialog = true }) { Text("Limpar meus dados", color = Negative) }
-                Text("Quanto Sobra?  •  0.1.0-alpha.1", color = Muted, fontSize = 11.sp)
+                Text("Quanto Sobra?  •  0.1.0-alpha.2", color = Muted, fontSize = 11.sp)
             }
         }
     }
