@@ -1,0 +1,116 @@
+package br.com.quantosobra.data
+
+import android.content.Context
+import br.com.quantosobra.domain.*
+import org.json.JSONArray
+import org.json.JSONObject
+
+/** Persistência privada, offline, sem servidor e sem permissões de rede. */
+class BudgetStore(context: Context) {
+    private val prefs = context.applicationContext.getSharedPreferences("quanto_sobra_v1", Context.MODE_PRIVATE)
+
+    fun load(): Budget {
+        return try {
+            val raw = prefs.getString("budget", null) ?: return Budget()
+            fromJson(JSONObject(raw))
+        } catch (_: Exception) {
+            Budget()
+        }
+    }
+
+    fun save(b: Budget) {
+        prefs.edit().putString("budget", toJson(b).toString()).apply()
+    }
+
+    private fun JSONObject.nonNegativeLong(key: String): Long = optLong(key, 0).coerceIn(0, 99_999_999_999L)
+    private fun JSONObject.nonNegativeInt(key: String, default: Int, max: Int): Int =
+        optInt(key, default).coerceIn(0, max)
+
+    private fun fromJson(j: JSONObject): Budget {
+        val food = j.optJSONArray("food") ?: JSONArray()
+        val products = (0 until minOf(food.length(), 500)).mapNotNull { index ->
+            val p = food.optJSONObject(index) ?: return@mapNotNull null
+            val name = p.optString("name").take(80)
+            if (name.isBlank()) null else FoodProduct(
+                id = p.optLong("id", index.toLong()), name = name,
+                unitPriceCents = p.nonNegativeLong("price"),
+                quantityHundredths = p.nonNegativeInt("qty", 100, 100_000)
+            )
+        }
+        val others = j.optJSONArray("extras") ?: JSONArray()
+        val extras = (0 until minOf(others.length(), 500)).mapNotNull { index ->
+            val e = others.optJSONObject(index) ?: return@mapNotNull null
+            val name = e.optString("name").take(80)
+            val type = OtherCategory.entries.find { it.name == e.optString("category") }
+                ?: OtherCategory.OTHER
+            if (name.isBlank()) null else ExtraExpense(
+                id = e.optLong("id", index.toLong()), name = name,
+                category = type, amountCents = e.nonNegativeLong("value")
+            )
+        }
+        val t = j.optJSONObject("transport") ?: JSONObject()
+        return Budget(
+            netSalaryCents = j.nonNegativeLong("salary"),
+            rentCents = j.nonNegativeLong("rent"),
+            condominiumCents = j.nonNegativeLong("condominium"),
+            iptuCents = j.nonNegativeLong("iptu"),
+            electricityCents = j.nonNegativeLong("electricity"),
+            waterCents = j.nonNegativeLong("water"),
+            internetCents = j.nonNegativeLong("internet"),
+            mobileCents = j.nonNegativeLong("mobile"),
+            gasCents = j.nonNegativeLong("gas"),
+            otherBillsCents = j.nonNegativeLong("otherBills"),
+            foodOutsideCents = j.nonNegativeLong("foodOutside"),
+            foodProducts = products,
+            transport = TransportConfig(
+                fareCents = t.nonNegativeLong("fare"),
+                ridesPerDay = t.nonNegativeInt("rides", 2, 20),
+                daysPerMonth = t.nonNegativeInt("days", 22, 31),
+                mode = TransportMode.entries.find { it.name == t.optString("mode") }
+                    ?: TransportMode.NONE,
+                basicSalaryCents = t.nonNegativeLong("basicSalary"),
+                companyPercent = t.nonNegativeInt("companyPercent", 50, 100),
+                deductedFromNetSalary = t.optBoolean("alreadyDeducted", false)
+            ),
+            extras = extras,
+            reserveCents = j.nonNegativeLong("reserve")
+        )
+    }
+
+    private fun toJson(b: Budget): JSONObject = JSONObject().apply {
+        put("schema", 1)
+        put("salary", b.netSalaryCents)
+        put("rent", b.rentCents)
+        put("condominium", b.condominiumCents)
+        put("iptu", b.iptuCents)
+        put("electricity", b.electricityCents)
+        put("water", b.waterCents)
+        put("internet", b.internetCents)
+        put("mobile", b.mobileCents)
+        put("gas", b.gasCents)
+        put("otherBills", b.otherBillsCents)
+        put("foodOutside", b.foodOutsideCents)
+        put("reserve", b.reserveCents)
+        put("food", JSONArray().apply {
+            b.foodProducts.forEach { p -> put(JSONObject().apply {
+                put("id", p.id); put("name", p.name); put("price", p.unitPriceCents)
+                put("qty", p.quantityHundredths)
+            }) }
+        })
+        put("extras", JSONArray().apply {
+            b.extras.forEach { e -> put(JSONObject().apply {
+                put("id", e.id); put("name", e.name); put("category", e.category.name)
+                put("value", e.amountCents)
+            }) }
+        })
+        put("transport", JSONObject().apply {
+            put("fare", b.transport.fareCents)
+            put("rides", b.transport.ridesPerDay)
+            put("days", b.transport.daysPerMonth)
+            put("mode", b.transport.mode.name)
+            put("basicSalary", b.transport.basicSalaryCents)
+            put("companyPercent", b.transport.companyPercent)
+            put("alreadyDeducted", b.transport.deductedFromNetSalary)
+        })
+    }
+}
