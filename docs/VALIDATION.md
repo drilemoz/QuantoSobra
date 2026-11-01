@@ -1,9 +1,9 @@
-# Validação — 0.1.0-alpha.15 (01/11/2026)
+# Validação — 0.1.0-alpha.16 (01/11/2026)
 
-- Base alpha.14, versionCode 15 e package ID preservado.
-- Novas regras sem desconto VA/VR presumido, opções nenhum/desconhecido/percentual/fixo; referência PAT de 20% em relação ao crédito é apenas comparação informativa, pois a base legal é o custo direto global. Fonte oficial: https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/perguntas-frequentes.
-- Sem dupla contagem de desconto: modo NET presume participação já embutida, com opção explícita de subtrair uma vez; modo GROSS faz desconto na folha uma vez.
-- Benefícios cobrem apenas compras aceitas conforme seleção por categoria; sem somar VA/VR a renda em dinheiro, sem saldo de cartão negativo nem abatimento duplo.
-- Orçamentos de schema até 7 preservam distribuição anterior por default; novos usam restrição VA/mercado, VR/refeições. Campos e desconto de VA/VR legado preservados na leitura do schema 8.
-- Validação local: 54 testes de domínio Kotlin/JVM aprovados com executor de asserções compatíveis com JUnit, incluindo método de desconto, modo NET/GROSS, compatibilidade e cobertura por cartão. 33 arquivos Kotlin analisados sem erros sintáticos pelo parser PSI; **não** é compilação Compose/Android.
-- Pendente: Gradle :app:testDebugUnitTest :app:assembleDebug, inspeção de acessibilidade/telas e ensaio de atualização em aparelho preservando SharedPreferences.
+- Base alpha.15, versionCode 16, package ID br.com.quantosobra preservado.
+- JSON schema 9 adiciona objeto `income` com campos opcionais de faturamento, custos, tributos, reservas, retirada, DAS/MEI, histórico e fontes de renda; dados JSON antigos permanecem legíveis. Teste completo de migração em aparelho ainda pendente.
+- Testes de domínio Kotlin/JVM locais: 67 casos aprovados (54 preexistentes e 13 novos), com executor de asserções compatíveis com JUnit. Não equivale a execução Gradle/Android.
+- Parser PSI Kotlin: 35 arquivos em `app/src` sem erros sintáticos. Não comprova resolução de tipos Compose.
+- Valores DAS 2026 baseados na Receita Federal (R$ 82,05; R$ 86,05; R$ 87,05) e teto geral de R$ 81.000/ano, proporcional a R$ 6.750 por mês ativo. Cálculos não contemplam MEI caminhoneiro.
+- Salário e transporte CLT não são aplicados a MEI/PJ/autônomo/servidor; tipo UNKNOWN conserva cálculo legado para orçamentos antigos sem categoria.
+- Pendente: `gradle :app:testDebugUnitTest :app:assembleDebug` em ambiente com Gradle/Android SDK e teste visual/teclado no aparelho.

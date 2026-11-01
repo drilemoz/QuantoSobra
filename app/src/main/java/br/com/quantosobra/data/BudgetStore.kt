@@ -94,7 +94,43 @@ class BudgetStore(context: Context) {
                 percentBase = if (item.optString("percentBase") == "food") "food" else "salary"
             )
         }
+        val ic = j.optJSONObject("income") ?: JSONObject()
+        val sources = ic.optJSONArray("sources") ?: JSONArray()
+        val history = ic.optJSONArray("history") ?: JSONArray()
+        val income = IncomeConfig(
+            detailed = ic.optBoolean("detailed", false),
+            receiptsCents = ic.nonNegativeLong("receipts"),
+            dailyBased = ic.optBoolean("dailyBased", false),
+            dailyRateCents = ic.nonNegativeLong("dailyRate"),
+            workedDays = ic.nonNegativeInt("workedDays", 0, 31),
+            publicAdministration = PublicAdministration.entries.find { it.name == ic.optString("publicAdministration") }
+                ?: PublicAdministration.MUNICIPAL,
+            publicPension = PublicPension.entries.find { it.name == ic.optString("publicPension") }
+                ?: PublicPension.OTHER,
+            pjTaxRegime = PjTaxRegime.entries.find { it.name == ic.optString("pjTaxRegime") }
+                ?: PjTaxRegime.UNKNOWN,
+            operatingCents = ic.nonNegativeLong("operating"),
+            taxesCents = ic.nonNegativeLong("taxes"),
+            socialCents = ic.nonNegativeLong("social"),
+            businessReserveCents = ic.nonNegativeLong("businessReserve"),
+            personalWithdrawalCents = ic.nonNegativeLong("personalWithdrawal"),
+            applyMeiDas = ic.optBoolean("applyMeiDas", false),
+            meiActivity = MeiActivity.entries.find { it.name == ic.optString("meiActivity") } ?: MeiActivity.SERVICES,
+            meiDasOverrideCents = ic.nonNegativeLong("meiDasOverride"),
+            meiPreviousRevenueCents = ic.nonNegativeLong("meiPreviousRevenue"),
+            meiOpeningMonth = ic.nonNegativeInt("meiOpeningMonth", 1, 12).coerceAtLeast(1),
+            historyCents = (0 until minOf(history.length(), 6)).map { history.optLong(it, 0).coerceIn(0, 99_999_999_999L) },
+            sources = (0 until minOf(sources.length(), 25)).mapNotNull { index ->
+                val entry = sources.optJSONObject(index) ?: return@mapNotNull null
+                val name = entry.optString("name").trim().take(70)
+                if (name.isBlank()) null else AdditionalIncome(
+                    entry.optLong("id", index.toLong()), name,
+                    entry.nonNegativeLong("amount"), IncomeCadence.entries.find { it.name == entry.optString("cadence") }
+                        ?: IncomeCadence.MONTHLY)
+            }
+        )
         return Budget(
+            income = income,
             workType = WorkType.entries.find { it.name == j.optString("workType") } ?: WorkType.UNKNOWN,
             rentPeriod = RentPeriod.entries.find { it.name == j.optString("rentPeriod") } ?: RentPeriod.MONTHLY,
             iptuPeriod = RentPeriod.entries.find { it.name == j.optString("iptuPeriod") } ?: RentPeriod.MONTHLY,
@@ -162,8 +198,28 @@ class BudgetStore(context: Context) {
     }
 
     private fun toJson(b: Budget): JSONObject = JSONObject().apply {
-        put("schema", 8)
+        put("schema", 9)
         put("workType", b.workType.name)
+        put("income", JSONObject().apply {
+            val c = b.income
+            put("detailed", c.detailed); put("receipts", c.receiptsCents)
+            put("dailyBased", c.dailyBased); put("dailyRate", c.dailyRateCents)
+            put("workedDays", c.workedDays)
+            put("publicAdministration", c.publicAdministration.name)
+            put("publicPension", c.publicPension.name); put("pjTaxRegime", c.pjTaxRegime.name)
+            put("operating", c.operatingCents); put("taxes", c.taxesCents)
+            put("social", c.socialCents); put("businessReserve", c.businessReserveCents)
+            put("personalWithdrawal", c.personalWithdrawalCents)
+            put("applyMeiDas", c.applyMeiDas); put("meiActivity", c.meiActivity.name)
+            put("meiDasOverride", c.meiDasOverrideCents)
+            put("meiPreviousRevenue", c.meiPreviousRevenueCents)
+            put("meiOpeningMonth", c.meiOpeningMonth)
+            put("history", JSONArray().apply { c.historyCents.take(6).forEach { put(it) } })
+            put("sources", JSONArray().apply { c.sources.take(25).forEach { entry ->
+                put(JSONObject().apply { put("id", entry.id); put("name", entry.name)
+                    put("amount", entry.amountCents); put("cadence", entry.cadence.name) })
+            } })
+        })
         put("rentPeriod", b.rentPeriod.name)
         put("iptuPeriod", b.iptuPeriod.name)
         put("payroll", JSONObject().apply {

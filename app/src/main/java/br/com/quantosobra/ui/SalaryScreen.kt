@@ -18,6 +18,10 @@ import br.com.quantosobra.domain.*
 /** Central de contracheque: oferece modo simples e modo bruto sem alterar os dados antigos. */
 @Composable
 fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
+    if (b.workType != WorkType.CLT && b.workType != WorkType.UNKNOWN) {
+        NonCltIncomeScreen(b, change, back)
+        return
+    }
     val s = b.salary
     val isGross = s.mode == SalaryMode.GROSS
     val summary = SalaryMath.breakdown(b)
@@ -40,7 +44,8 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     }
 
     Page("Meu salário", "Do bruto ao que realmente entra na conta", back) {
-        SectionTotal(if (isGross) "Salário líquido estimado" else "Salário líquido informado", BudgetMath.salaryNet(b))
+        SectionTotal(if (b.income.sources.isNotEmpty()) "Renda total mensal" else
+            if (isGross) "Salário líquido estimado" else "Salário líquido informado", BudgetMath.salaryNet(b))
         SurfaceCard {
             Text("Como quer informar seu salário?", color = Ink, fontSize = 15.sp,
                 fontWeight = FontWeight.Bold)
@@ -150,6 +155,7 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 Hint("O vale-transporte CLT é calculado em Transporte e aparece aqui automaticamente. Se a empresa oferecer VA/VR como benefício, só informe aqui o desconto cobrado na folha, não o valor do benefício recebido.")
             }
         }
+        IncomeSourcesEditor(b, change)
         SurfaceCard {
             Text("Benefício de alimentação", color = Ink, fontWeight = FontWeight.Bold)
             FieldAmount("Vale-alimentação (VA) que vou usar", s.foodBenefitCents,

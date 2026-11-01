@@ -1,10 +1,12 @@
-# Quanto Sobra? — 0.1.0-alpha.15
+# Quanto Sobra? — 0.1.0-alpha.16
 
-**01/11/2026 · versionCode 15**
+**01/11/2026 · versionCode 16**
 
-- Benefícios VA e VR: escolha não sei, sem desconto, percentual ou valor efetivamente observado na folha. O PAT traz referência informativa de até 20% do custo direto e pode exigir verificação da base de cálculo real, empresa e norma coletiva.
-- Salário líquido: marque quando a participação já estiver embutida para evitar desconto duplicado; se ainda não estiver, aplique uma única vez.
-- Uso de VA/VR por categoria de alimentação (mercado/refeições), configurável e sem usar o mesmo crédito em duas despesas diferentes. Orçamentos anteriores mantêm a distribuição antiga inicialmente.
-- Panorama final com alerta de orçamento apertado, resumo de benefícios e links para revisar categorias no wizard.
-- Migração opcional JSON schema 8, preservando dados anteriores e o desconto fixo legado. Pacote, assinatura e permissões iguais.
-- Testes JVM/sintaxe locais realizados. APK Android e interface em aparelho ainda precisam de validação.
+- Wizard e central de renda adaptados a CLT, MEI, PJ, autônomo, informal, servidor e outras rendas.
+- Separe recebimentos, despesas profissionais, impostos e contribuições informadas, reservas e retirada pessoal; fontes adicionais configuráveis sem duplicação.
+- MEI: DAS 2026 opcional e ajustável por atividade; indicação de faturamento acumulado e teto geral proporcional à abertura. MEI caminhoneiro precisa consultar PGMEI.
+- Renda variável: histórico de três meses, média e cenário conservador meramente informativo.
+- Servidor público usa valores reais do contracheque, sem aplicar a tabela CLT indevidamente.
+- Troca de vínculo não herda desconto de vale-transporte CLT; assistente oferece reembolso fora da CLT.
+- Compatibilidade com schemas antigos e persistência opcional no schema 9.
+- 67 testes Kotlin/JVM de domínio aprovados; 35 fontes Kotlin sem erros sintáticos PSI. Build Android real ainda pendente.

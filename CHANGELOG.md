@@ -1,5 +1,12 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.16 (01/11/2026)
+- Perfis separados para MEI, PJ, autônomo, informal, servidor público e outras rendas; wizard adaptativo e editor de renda persistente.
+- Receita/faturamento e retirada pessoal separados de custos operacionais, impostos, contribuição e reservas; fontes de renda adicionais com frequência.
+- DAS 2026 do MEI opt-in editável e aviso do teto proporcional. Histórico de renda variável e cenário conservador sem mudar orçamento automaticamente.
+- Troca de vínculo remove regras de vale-transporte CLT inadequadas e preserva dados antigos; servidores e PJ não recebem INSS/IRRF CLT estimados.
+- JSON schema 9 opcional, versionCode 16, docs, novidades e workflow atualizados; 67 testes JVM de domínio; build Android pendente.
+
 ## 0.1.0-alpha.15 (01/11/2026)
 
 - Desconto de VA/VR específico no wizard e em Meu salário: desconhecido (sem desconto presumido), sem cobrança, percentual da soma VA+VR ou valor real. Avisos informativos sobre referência de 20% do PAT com ressalva do custo direto global e apuração, sem impedir registrar valores reais.

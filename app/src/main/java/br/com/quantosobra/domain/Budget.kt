@@ -11,7 +11,102 @@ enum class SalaryMode { NET, GROSS }
 /** UNKNOWN não cria desconto presumido; PAT é referência, não cobrança automática. */
 enum class FoodDiscountMethod { UNKNOWN, NONE, PERCENT, FIXED }
 /** Vínculo declarado pelo usuário. INSS/IR da central só são aplicados à CLT. */
-enum class WorkType { UNKNOWN, CLT, MEI_PJ, SELF_EMPLOYED, PUBLIC_SERVANT, OTHER }
+enum class WorkType { UNKNOWN, CLT, MEI_PJ, SELF_EMPLOYED, PUBLIC_SERVANT, OTHER, MEI, PJ, INFORMAL }
+/** MEI/PJ legado é apresentado como MEI sem alterar silenciosamente o valor salvo. */
+fun WorkType.label(): String = when (this) {
+    WorkType.CLT -> "CLT"; WorkType.MEI, WorkType.MEI_PJ -> "MEI"
+    WorkType.PJ -> "Pessoa jurídica"; WorkType.SELF_EMPLOYED -> "Autônomo"
+    WorkType.INFORMAL -> "Trabalho informal"; WorkType.PUBLIC_SERVANT -> "Servidor público"
+    WorkType.OTHER -> "Outras rendas"; WorkType.UNKNOWN -> "Não informado"
+}
+fun WorkType.isMei() = this == WorkType.MEI || this == WorkType.MEI_PJ
+
+enum class IncomeCadence { MONTHLY, WEEKLY, ANNUAL }
+enum class PublicAdministration(val title: String) {
+    FEDERAL("Federal"), STATE("Estadual"), MUNICIPAL("Municipal")
+}
+enum class PublicPension(val title: String) {
+    RPPS("RPPS"), RGPS("RGPS / INSS"), OTHER("Outro / não sei")
+}
+enum class PjTaxRegime(val title: String) {
+    SIMPLES("Simples Nacional"), PRESUMIDO("Lucro presumido"), REAL("Lucro real"), UNKNOWN("Outro / não sei")
+}
+
+enum class MeiActivity(val title: String, val das2026Cents: Long) {
+    COMMERCE("Comércio / indústria", 8_205), SERVICES("Serviços", 8_605), BOTH("Comércio e serviços", 8_705)
+}
+data class AdditionalIncome(val id: Long, val name: String, val amountCents: Long,
+    val cadence: IncomeCadence = IncomeCadence.MONTHLY)
+/** Receita bruta da atividade não equivale a dinheiro líquido disponível. Campos opcionais, schema 9. */
+data class IncomeConfig(
+    val detailed: Boolean = false,
+    val receiptsCents: Long = 0,
+    val dailyBased: Boolean = false,
+    val dailyRateCents: Long = 0,
+    val workedDays: Int = 0,
+    val publicAdministration: PublicAdministration = PublicAdministration.MUNICIPAL,
+    val publicPension: PublicPension = PublicPension.OTHER,
+    val pjTaxRegime: PjTaxRegime = PjTaxRegime.UNKNOWN,
+    val operatingCents: Long = 0,
+    val taxesCents: Long = 0,
+    val socialCents: Long = 0,
+    val businessReserveCents: Long = 0,
+    /** Limite opcional de retirada mensal pessoal; zero significa todo o saldo disponível. */
+    val personalWithdrawalCents: Long = 0,
+    val applyMeiDas: Boolean = false,
+    val meiActivity: MeiActivity = MeiActivity.SERVICES,
+    val meiDasOverrideCents: Long = 0,
+    /** Receita anual já faturada ANTES do mês do orçamento. */
+    val meiPreviousRevenueCents: Long = 0,
+    /** Mês de abertura no ano corrente, 1 para negócio aberto antes do ano. */
+    val meiOpeningMonth: Int = 1,
+    val historyCents: List<Long> = emptyList(),
+    val sources: List<AdditionalIncome> = emptyList()
+)
+/** Troca vínculo sem apagar as informações financeiras já registradas. */
+fun Budget.withWorkType(type: WorkType): Budget {
+    val clt = type == WorkType.CLT
+    val oldClt = workType == WorkType.CLT
+    return copy(workType = type, salary = salary.copy(
+        mode = if (clt) SalaryMode.GROSS else SalaryMode.NET,
+        autoInss = clt, autoIrrf = clt
+    ), transport = if (oldClt && !clt) transport.copy(
+        mode = if (transport.mode == TransportMode.CLT) TransportMode.NONE else transport.mode,
+        deductedFromNetSalary = false, customOnPayroll = false
+    ) else transport)
+}
+
+object IncomeMath {
+    fun sourceMonthly(s: AdditionalIncome): Long = when (s.cadence) {
+        IncomeCadence.MONTHLY -> s.amountCents.coerceAtLeast(0)
+        IncomeCadence.WEEKLY -> (s.amountCents.coerceAtLeast(0) * 52L + 6L) / 12L
+        IncomeCadence.ANNUAL -> (s.amountCents.coerceAtLeast(0) + 6L) / 12L
+    }
+    fun sourcesMonthly(c: IncomeConfig): Long = c.sources.sumOf(::sourceMonthly)
+    fun dasMei(c: IncomeConfig, type: WorkType): Long =
+        if (type.isMei() && c.detailed && c.applyMeiDas) {
+            c.meiDasOverrideCents.takeIf { it > 0 } ?: c.meiActivity.das2026Cents
+        } else 0L
+    fun revenue(c: IncomeConfig, type: WorkType): Long =
+        if ((type == WorkType.SELF_EMPLOYED || type == WorkType.INFORMAL) && c.dailyBased)
+            c.dailyRateCents.coerceAtLeast(0) * c.workedDays.coerceIn(0, 31)
+        else c.receiptsCents
+    fun workNet(c: IncomeConfig, type: WorkType): Long {
+        val available = revenue(c, type) - c.operatingCents - c.taxesCents - c.socialCents -
+            c.businessReserveCents - dasMei(c, type)
+        return if (c.personalWithdrawalCents > 0) min(available, c.personalWithdrawalCents) else available
+    }
+    fun baseIncome(b: Budget): Long = if (b.income.detailed) workNet(b.income, b.workType) else b.netSalaryCents
+    /** Fontes adicionais são cadastradas separadamente para não duplicar o salário principal. */
+    fun fullIncome(b: Budget): Long = baseIncome(b) + sourcesMonthly(b.income)
+    fun averageHistory(c: IncomeConfig): Long? = c.historyCents.takeIf { it.isNotEmpty() }
+        ?.let { it.sum() / it.size }
+    fun conservativeHistory(c: IncomeConfig): Long? = c.historyCents.minOrNull()
+    /** Teto geral de R$ 81 mil; exclui MEI caminhoneiro (tratamento diferente). */
+    fun meiCap2026(c: IncomeConfig): Long = 675_000L * (13 - c.meiOpeningMonth.coerceIn(1, 12))
+    fun meiRunningTotal(c: IncomeConfig): Long = c.meiPreviousRevenueCents + c.receiptsCents
+}
+
 enum class RentPeriod { MONTHLY, YEARLY }
 enum class CommuteMode { PUBLIC, PRIVATE, BIKE_WALK, HOME, UNSET }
 
@@ -122,6 +217,7 @@ data class Budget(
     val iptuPeriod: RentPeriod = RentPeriod.MONTHLY,
     val netSalaryCents: Long = 0,
     val salary: SalaryConfig = SalaryConfig(),
+    val income: IncomeConfig = IncomeConfig(),
     val foodEstimateCents: Long = 0,
     val rentCents: Long = 0,
     val condominiumCents: Long = 0,
@@ -283,16 +379,19 @@ object BudgetMath {
         if (t.commuteMode == CommuteMode.PUBLIC && t.deductedFromNetSalary && t.mode != TransportMode.NONE) 0 else transportEmployeeCost(t)
 
     fun payrollTransport(b: Budget): Long {
-        if (b.salary.mode != SalaryMode.GROSS || b.transport.commuteMode != CommuteMode.PUBLIC) return 0L
+        if ((b.workType != WorkType.CLT && b.workType != WorkType.UNKNOWN) || b.salary.mode != SalaryMode.GROSS || b.transport.commuteMode != CommuteMode.PUBLIC) return 0L
         return when (b.transport.mode) {
             TransportMode.CLT -> transportEmployeeCost(b.transport, b.salary.grossCents)
             TransportMode.CUSTOM, TransportMode.FIXED -> if (b.transport.customOnPayroll) transportEmployeeCost(b.transport) else 0L
             else -> 0L
         }
     }
-    fun salaryNet(b: Budget): Long = SalaryMath.breakdown(b).netCents
-    fun transportBudgetCost(b: Budget): Long = if (b.salary.mode == SalaryMode.NET)
-        transportFromAvailable(b.transport)
+    fun salaryNet(b: Budget): Long = SalaryMath.breakdown(b).netCents +
+        if (b.workType == WorkType.CLT || b.workType == WorkType.UNKNOWN)
+            IncomeMath.sourcesMonthly(b.income) else 0L
+    fun transportBudgetCost(b: Budget): Long = if ((b.workType != WorkType.CLT && b.workType != WorkType.UNKNOWN) || b.salary.mode == SalaryMode.NET)
+        transportFromAvailable(if (b.workType != WorkType.CLT && b.workType != WorkType.UNKNOWN && b.transport.mode == TransportMode.CLT)
+            b.transport.copy(mode = TransportMode.NONE, deductedFromNetSalary = false) else b.transport)
     else (transportEmployeeCost(b.transport, b.salary.grossCents) - payrollTransport(b)).coerceAtLeast(0L)
     fun expenses(b: Budget): Long = housing(b) + foodPaidFromCash(b) + bills(b) +
         extras(b) + transportBudgetCost(b)
@@ -380,6 +479,11 @@ object SalaryMath {
 
     fun breakdown(b: Budget): SalaryBreakdown {
         val s = b.salary
+        if (b.workType != WorkType.CLT && b.workType != WorkType.UNKNOWN) {
+            val main = IncomeMath.fullIncome(b)
+            val foodCharge = if (s.foodDeductionAlreadyInNet) 0L else FoodBenefitMath.deductionCents(s)
+            return SalaryBreakdown(main, 0, 0, 0, foodCharge, main - foodCharge)
+        }
         if (s.mode == SalaryMode.NET) {
             val additional = if (s.foodDeductionAlreadyInNet) 0L else FoodBenefitMath.deductionCents(s)
             return SalaryBreakdown(b.netSalaryCents, 0, 0, 0, additional, b.netSalaryCents - additional)

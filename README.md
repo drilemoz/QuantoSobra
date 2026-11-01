@@ -2,7 +2,19 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.15` · **versionCode:** `15` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.16` · **versionCode:** `16` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Tipos de trabalho e renda detalhada — alpha.16
+
+- **Perfis separados:** CLT, MEI, PJ, autônomo, trabalho informal, servidor público e outras fontes; o perfil legado `MEI_PJ` continua legível como MEI. Alterar modalidade na etapa 1 ou em Minha renda preserva os dados antigos, mas desativa cálculo CLT que não se aplica.
+- **Dois modos de renda:** valor líquido já conhecido ou detalhamento de faturamento/remuneração, custos, tributos informados, contribuição previdenciária, reserva e retirada pessoal. Não aplicar tabela CLT a PJ/MEI/servidor.
+- **Fontes adicionais:** criar, editar e excluir rendas mensais, semanais (52/12) ou anuais (1/12). Fonte principal não deve ser cadastrada novamente como adicional. Também disponível na central CLT, sem alterar a base de INSS/IRRF.
+- **MEI:** DAS-MEI de 2026 opcional e editável (R$ 82,05 comércio, R$ 86,05 serviços, R$ 87,05 ambos); controle de receitas declaradas e aviso de proximidade do teto geral de R$ 81 mil/ano, proporcional ao início da atividade. Valores específicos MEI caminhoneiro **não são calculados**; verificar no PGMEI. Não é apuração contábil ou fiscal.
+- **Renda variável:** cálculo por dias remunerados e valor diário, histórico opcional de três meses, média e menor mês com cenário conservador informativo; projeções não substituem a renda principal automaticamente.
+- **Servidor:** seleção federal/estadual/municipal e regime previdenciário RPPS/RGPS e IR informados pelo holerite, sem aplicar INSS automático CLT. **PJ/autônomo:** indicação do regime tributário (PJ) e tributos manuais conforme regime; não inventa alíquotas.
+- **Transporte:** opções de reembolso/custeio para não CLT. `TransportMode.CLT` legado passa a ser tratado como sem subsídio em perfis não CLT, evitando estimativas incorretas; modo `UNKNOWN` conserva comportamento anterior.
+- **Persistência:** JSON schema 9 com `income` opcional; dados schema 1–8 e benefícios/despesas anteriores permanecem legíveis, sem reset. Todos os cálculos monetários em centavos inteiros.
+- Referências oficiais: [DAS-MEI 2026](https://www8.receita.fazenda.gov.br/SIMPLESNACIONAL/noticias/NoticiaCompleta.aspx?id=c3b2044c-ff97-432a-b33c-ecf2a3df6dc3), [teto do MEI](https://www.gov.br/memp/pt-br/teto-do-mei), [Carnê-Leão](https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda/pagamento/carne-leao).
 
 ## Descontos VA/VR e panorama editável — alpha.15
 
@@ -77,7 +89,7 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.15-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.16-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -142,7 +154,7 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.15-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.16-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.

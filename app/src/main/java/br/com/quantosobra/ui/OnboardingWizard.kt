@@ -37,8 +37,8 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
     val titles = listOf("Seu jeito de trabalhar", "Quanto você ganha?", "Benefícios e descontos",
         "Seu caminho", "Sua escala de trabalho", "Passagens e transporte", "Quem paga o transporte?",
         "Seu lugar no mundo", "Contas da casa", "Comida na mesa", "Seu novo panorama")
-    val subtitles = listOf("Cada tipo de renda tem regras próprias.", "Vamos partir de um valor realista.",
-        "O que entra e o que sai do contracheque.", "Como você chega ao trabalho?",
+    val subtitles = listOf("Cada tipo de renda tem regras próprias.", "Recebimentos, custos e dinheiro realmente disponível.",
+        "Benefícios e descontos aplicáveis ao seu vínculo.", "Como você chega ao trabalho?",
         "Um calendário. Sem contar dias na cabeça.", "Quanto custa chegar e voltar?",
         "O valor certo, sem desconto em dobro.", "Aluguel e taxas, tudo no mesmo lugar.",
         "Pequenas contas que fazem diferença.", "Supermercado, marmita e alimentação ajustáveis.", "Seu orçamento começa aqui.")
@@ -114,56 +114,45 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
             when (step) {
                 0 -> {
                     listOf(
-                        Triple(WorkType.CLT, "Carteira assinada", "CLT • Descontos estimados"),
-                        Triple(WorkType.MEI_PJ, "MEI / Pessoa jurídica", "Renda do negócio"),
-                        Triple(WorkType.SELF_EMPLOYED, "Autônomo / Informal", "Rendimento próprio"),
-                        Triple(WorkType.PUBLIC_SERVANT, "Servidor público", "Regras de folha específicas"),
-                        Triple(WorkType.OTHER, "Outra renda", "Personalizar depois")
+                        Triple(WorkType.CLT, "Carteira assinada (CLT)", "INSS, IRRF e contracheque"),
+                        Triple(WorkType.MEI, "MEI", "DAS, faturamento e retiradas"),
+                        Triple(WorkType.PJ, "Pessoa jurídica (PJ)", "Custos, tributos e distribuição"),
+                        Triple(WorkType.SELF_EMPLOYED, "Autônomo", "Serviços, despesas e contribuições"),
+                        Triple(WorkType.INFORMAL, "Trabalho informal", "Renda variável e despesas"),
+                        Triple(WorkType.PUBLIC_SERVANT, "Servidor público", "Descontos reais de folha"),
+                        Triple(WorkType.OTHER, "Outras fontes de renda", "Pensão, aluguel, bolsa e outras")
                     ).forEachIndexed { index, item ->
-                        WizardOption(symbol = listOf("▣", "◈", "✳", "▥", "＋")[index],
+                        WizardOption(symbol = listOf("▣", "◈", "▰", "✳", "◇", "▥", "＋")[index],
                             label = item.second, detail = item.third,
-                            selected = budget.workType == item.first, compact = compact) {
-                            val clt = item.first == WorkType.CLT
-                            set(budget.copy(workType = item.first,
-                                salary = s.copy(mode = if (clt) SalaryMode.GROSS else SalaryMode.NET,
-                                    autoInss = clt, autoIrrf = clt)))
+                            selected = budget.workType == item.first ||
+                                (item.first == WorkType.MEI && budget.workType == WorkType.MEI_PJ), compact = compact) {
+                            set(budget.withWorkType(item.first))
                         }
                     }
                 }
                 1 -> {
-                    val clt = budget.workType == WorkType.CLT
-                    WizardPanel {
-                        FieldAmount(if (clt) "Salário bruto mensal" else "Renda mensal disponível",
-                            if (clt) s.grossCents else budget.netSalaryCents, {
-                                set(if (clt) budget.copy(salary = s.copy(grossCents = it, mode = SalaryMode.GROSS))
-                                else budget.copy(netSalaryCents = it, salary = s.copy(mode = SalaryMode.NET)))
+                    if (budget.workType != WorkType.CLT) {
+                        IncomeEditor(budget, set, compact = true)
+                    } else {
+                        WizardPanel {
+                            FieldAmount("Salário bruto mensal", s.grossCents, {
+                                set(budget.copy(salary = s.copy(grossCents = it, mode = SalaryMode.GROSS)))
                             }, compact = true, externalValueRevision = salaryExternalRevision)
-                        if (!imeVisible) {
-                            HorizontalDivider(color = Lilac)
-                            if (clt) {
+                            if (!imeVisible) {
+                                HorizontalDivider(color = Lilac)
                                 WizardAmountLine("Bruto informado", s.grossCents)
                                 WizardAmountLine("INSS estimado", SalaryMath.breakdown(budget).inssCents)
                                 WizardAmountLine("IRRF estimado", SalaryMath.breakdown(budget).irrfCents)
+                                WizardAmountLine("Líquido após descontos", BudgetMath.salaryNet(budget), true)
                             }
-                            WizardAmountLine(if (clt) "Líquido após descontos" else "Renda informada",
-                                BudgetMath.salaryNet(budget), true)
                         }
-                    }
-                    if (clt && !imeVisible) WizardPanel {
-                        MinimumWageBox(compact = true, applyToSalary = { minimum ->
-                            // Atualiza o orçamento e força a exibição do valor no campo,
-                            // mesmo se o campo ainda conservava foco após fechar o teclado.
-                            set(budget.copy(salary = s.copy(grossCents = minimum, mode = SalaryMode.GROSS)))
-                            salaryExternalRevision++
-                        })
-                        Text("Mínimo nacional BRUTO. O líquido é menor devido aos descontos indicados acima.",
-                            color = Muted, fontSize = 10.sp)
-                    }
-                    if (!imeVisible) {
-                        OutlinedButton(onClick = { showSalaryRules = true }, modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(15.dp)) { Text("ⓘ  Como são calculados os descontos?", fontSize = 12.sp) }
-                        WizardNote(if (clt) "Estimativa de INSS/IRRF 2026. Outros descontos e benefícios são configuráveis." else
-                            "Outros vínculos não recebem descontos CLT automáticos. Confira seu rendimento líquido.")
+                        if (!imeVisible) WizardPanel {
+                            MinimumWageBox(compact = true, applyToSalary = { minimum ->
+                                set(budget.copy(salary = s.copy(grossCents = minimum, mode = SalaryMode.GROSS)))
+                                salaryExternalRevision++
+                            })
+                        }
+                        IncomeSourcesEditor(budget, set)
                     }
                 }
                 2 -> {
@@ -190,7 +179,7 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                             shape = RoundedCornerShape(14.dp)) { Text("ⓘ  Percentuais e benefícios", fontSize = 12.sp) }
                         WizardNote(if (budget.workType == WorkType.CLT)
                             "VA/VR é crédito de alimentação, não salário. O desconto é opcional; não repita o VT nem valores já abatidos."
-                            else "VA/VR não é renda em dinheiro. Com salário líquido informado, marque quando o desconto já estiver incluído.")
+                            else "VA/VR não é renda em dinheiro. Só aplique cobrança na renda se não estiver incluída no valor informado. Em MEI/PJ, não presuma holerite.")
                     }
                 }
                 3 -> {
@@ -274,7 +263,29 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                             }
                         }
                     } else {
-                        WizardEmpty("◈", "Benefício opcional", "O vale-transporte CLT automático só vale para o cenário com carteira assinada e transporte público. Ajustes ficam disponíveis na tela Transporte.")
+                        if (t.commuteMode == CommuteMode.PUBLIC) {
+                            WizardPanel {
+                                Text("Ajuda de transporte opcional", fontWeight = FontWeight.Bold, color = Ink)
+                                listOf(
+                                    Triple(TransportMode.NONE, "Pago por mim", "Sem reembolso"),
+                                    Triple(TransportMode.FULL, "Custeio integral", "Empresa/cliente paga tudo"),
+                                    Triple(TransportMode.CUSTOM, "Custeio percentual", "Informe a participação"),
+                                    Triple(TransportMode.FIXED, "Reembolso fixo", "Ajuda mensal")
+                                ).forEachIndexed { index, item ->
+                                    WizardOption(listOf("−", "✓", "%", "R$")[index], item.second,
+                                        item.third, t.mode == item.first, compact) {
+                                        set(budget.copy(transport = t.copy(mode = item.first,
+                                            deductedFromNetSalary = false, customOnPayroll = false)))
+                                    }
+                                }
+                                if (t.mode == TransportMode.CUSTOM) FieldCount("Parte paga pelo contratante (%)",
+                                    t.companyPercent, 0..100,
+                                    { set(budget.copy(transport = t.copy(companyPercent = it))) })
+                                if (t.mode == TransportMode.FIXED) FieldAmount("Reembolso mensal",
+                                    t.companyFixedCents, { set(budget.copy(transport = t.copy(companyFixedCents = it))) }, compact = true)
+                                WizardAmountLine("Custo de transporte do bolso", BudgetMath.transportBudgetCost(budget), true)
+                            }
+                        } else WizardEmpty("◈", "Sem custo de passagens", "Nesta modalidade o vale-transporte CLT não se aplica.")
                     }
                 }
                 7 -> {
@@ -430,7 +441,10 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                         modifier = Modifier.weight(1.65f).height(49.dp), shape = RoundedCornerShape(18.dp),
                         enabled = when (step) {
                             0 -> budget.workType != WorkType.UNKNOWN
-                            1 -> if (budget.workType == WorkType.CLT) s.grossCents > 0L else budget.netSalaryCents > 0L
+                            1 -> if (budget.workType == WorkType.CLT) s.grossCents > 0L else
+                                (if (budget.income.detailed) IncomeMath.revenue(budget.income, budget.workType) > 0L
+                                 else budget.netSalaryCents > 0L) ||
+                                budget.income.sources.isNotEmpty()
                             3 -> t.commuteMode != CommuteMode.UNSET
                             else -> true
                         }) { Text(if (step == count - 1) "Abrir meu orçamento  →" else "Continuar  →", fontWeight = FontWeight.Bold) }

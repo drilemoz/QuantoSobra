@@ -10,8 +10,14 @@ data class ReleaseEntry(
 )
 
 object ReleaseCatalog {
-    const val currentVersion = "0.1.0-alpha.15"
+    const val currentVersion = "0.1.0-alpha.16"
     val recent = listOf(
+        ReleaseEntry("0.1.0-alpha.16", "01/11/2026", "Sua renda com regras próprias", listOf(
+            ReleaseFeature("Modalidades de renda", "MEI, PJ, autônomo, informal, servidor e outras fontes com formulários específicos."),
+            ReleaseFeature("Receita não é salário", "Separe faturamento, despesas, impostos, reservas, retirada pessoal e fontes adicionais."),
+            ReleaseFeature("MEI e renda variável", "Referência DAS 2026 opcional, alerta do teto proporcional, histórico de renda e cenários informativos."),
+            ReleaseFeature("Transporte adequado", "Trocar de vínculo não aplica o vale-transporte CLT a outras atividades.")
+        )),
         ReleaseEntry("0.1.0-alpha.15", "01/11/2026", "VA/VR sem desconto em dobro e orçamento mais claro", listOf(
             ReleaseFeature("Participação no benefício", "VA/VR com escolha de percentual, valor fixo, nenhum desconto ou ainda não sei, com aviso do PAT."),
             ReleaseFeature("Cartões sem sobreposição", "Defina se VA/VR podem pagar supermercado e refeições, sem duplicar gastos ou crédito."),

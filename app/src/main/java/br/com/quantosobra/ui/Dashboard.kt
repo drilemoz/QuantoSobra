@@ -61,7 +61,8 @@ fun Dashboard(budget: Budget, onNavigate: (String) -> Unit) {
                         }
                     }
                     Spacer(Modifier.height(25.dp))
-                    Text("SALÁRIO LÍQUIDO ESTIMADO / MÊS", color = Color(0xFFEDDBFB), fontSize = 11.sp,
+                    Text(if (budget.workType == WorkType.CLT) "RENDA LÍQUIDA TOTAL / MÊS"
+                        else "RENDA DISPONÍVEL / MÊS", color = Color(0xFFEDDBFB), fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(Money.format(income), color = Color.White,
