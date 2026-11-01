@@ -10,8 +10,13 @@ data class ReleaseEntry(
 )
 
 object ReleaseCatalog {
-    const val currentVersion = "0.1.0-alpha.12"
+    const val currentVersion = "0.1.0-alpha.13"
     val recent = listOf(
+        ReleaseEntry("0.1.0-alpha.13", "01/11/2026", "Sua alimentação e seu calendário, do seu jeito", listOf(
+            ReleaseFeature("Produtos básicos configuráveis", "Oito itens com preços indicativos do Atacadão, embalagens e quantidades editáveis, sem sobrescrever seus produtos."),
+            ReleaseFeature("Comida na mesa", "Editor de produtos diretamente no assistente e lista compacta com diferença entre estimativa e subtotal conhecido."),
+            ReleaseFeature("Folgas e plantões", "Exceções por data e ciclo 4×3 ancorado, com navegação de meses separada da referência do transporte.")
+        )),
         ReleaseEntry("0.1.0-alpha.12", "31/10/2026", "Seu salário, no campo certo", listOf(
             ReleaseFeature("Botão Usar corrigido", "O salário mínimo escolhido preenche o campo bruto e atualiza os descontos imediatamente."),
             ReleaseFeature("Consulta online corrigida", "Requisição ao Banco Central respeita o limite da API, mantendo a referência offline se a rede falhar."),

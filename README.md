@@ -2,7 +2,16 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.12` · **versionCode:** `12` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.13` · **versionCode:** `13` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Alimentação e escala editáveis — alpha.13
+
+- **Carregar produtos básicos** no wizard e em Alimentação: arroz 3 × 5 kg, óleo 4 × 900 ml (=3,6 L), açúcar 1 × 1 kg, feijão 5 × 1 kg, farinha de trigo 2 × 1 kg, macarrão 5 × 500 g, ovos 1 × 30 unidades e leite 5 × 1 L. O preço de referência é indicativo, datado de **01/11/2026**, extraído de um pequeno conjunto de anúncios do **catálogo online do Atacadão** (https://www.atacadao.com.br/catalogo); não representa cotação garantida de determinada loja. **Nenhuma atualização automática ou transferência de orçamento** acontece. Total de referência do conjunto: R$ 210,95, sujeito a preço, marca e embalagem.
+- O usuário seleciona itens e edita preços/quantidades antes de carregar. Produtos já cadastrados não são sobrescritos nem duplicados. Adição/edição manual preservada. O campo `priceOrigin` identifica referência provisória, e muda para `MANUAL` após edição.
+- Lista de compras compacta com **Editar** e **Excluir**, preço ausente rotulado como *Pendente*, subtotal detalhado separado de *Estimativa considerada no orçamento*.
+- Wizard agora permite criar, editar e visualizar produtos ainda na etapa **Comida na mesa**, com conteúdo rolável e navegação inferior fixa.
+- Calendário: escala 4×3 como ciclo de 4 trabalhados/3 folgas com referência editável, 12×36 alternado, dias isolados como exceção e navegação entre meses sem mexer no custo até tocar **Usar este mês no orçamento**.
+- Schema 6 (campos opcionais `priceOrigin`, `extraDates`, `offDates`) retrocompatível com schema 1–5; pacote, requisitos de assinatura e credenciais existentes não mudaram.
 
 ## Botão Usar + consulta corrigidos — alpha.12
 
@@ -52,7 +61,7 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.12-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.13-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -117,7 +126,7 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.12-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.13-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.

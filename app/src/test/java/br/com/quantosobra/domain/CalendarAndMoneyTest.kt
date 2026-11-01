@@ -20,7 +20,7 @@ class CalendarAndMoneyTest {
         assertEquals(3, result.size)
         assertEquals(original[0], result[0])
         assertEquals(setOf("Arroz", "Ovos", "Leite"), result.map { it.name }.toSet())
-        assertEquals("dúzia", result.first { it.name == "Ovos" }.unit)
+        assertEquals("cartela 30 un", result.first { it.name == "Ovos" }.unit)
         assertEquals(0L, result.first { it.name == "Leite" }.unitPriceCents)
     }
     @Test fun percentagesUseDecimalWithoutFloatingPoint() {
@@ -73,4 +73,46 @@ class CalendarAndMoneyTest {
         assertEquals(25080L, BudgetMath.transportGross(t))
         assertEquals(18000L, BudgetMath.transportEmployeeCost(t.copy(mode = TransportMode.CLT), 300000L))
     }
+    @Test fun basicProductsTotalAndNoOverwrite() {
+        val load = EssentialProducts.basics.map {
+            FoodProduct(0L, it.name, it.priceCents, it.quantity * 100, it.unit, "REFERENCIA_ATACADAO")
+        }
+        assertEquals(8, load.size)
+        assertEquals(21_095L, load.sumOf(BudgetMath::productCost))
+        val original = FoodProduct(90L, "Arroz", 3_500L, 200, "pacote 5 kg")
+        val merged = EssentialProducts.merge(listOf(original), load)
+        assertEquals(8, merged.size)
+        assertEquals(original, merged.first())
+        assertEquals(7, merged.drop(1).map { it.id }.distinct().size)
+        assertEquals(8, EssentialProducts.merge(merged, load).size)
+    }
+
+    @Test fun isolatedDayExceptionsDoNotAlterWeekdays() {
+        val month = YearMonth.of(2026, 11)
+        val date = LocalDate.of(2026, 11, 3) // terça-feira
+        val base = WorkCalendar.days(month, WorkSchedule.WEEKLY, 31, date, emptySet())
+        val (extra, off) = WorkCalendar.toggleDate(date, base, emptySet(), emptySet(), true)
+        val adjusted = WorkCalendar.days(month, WorkSchedule.WEEKLY, 31, date, emptySet(), extra, off)
+        assertEquals(20, adjusted.size)
+        assertEquals(false, date in adjusted)
+        assertEquals(true, LocalDate.of(2026, 11, 10) in adjusted)
+        val (reExtra, reOff) = WorkCalendar.toggleDate(date, adjusted, extra, off, true)
+        assertEquals(base, WorkCalendar.days(month, WorkSchedule.WEEKLY, 31, date, emptySet(), reExtra, reOff))
+    }
+
+    @Test fun fourByThreeAcrossYearAndLeapDay() {
+        val anchor = LocalDate.of(2026, 12, 28) // seg
+        val december = WorkCalendar.days(YearMonth.of(2026, 12), WorkSchedule.FOUR_BY_THREE,
+            0, anchor, emptySet())
+        val january = WorkCalendar.days(YearMonth.of(2027, 1), WorkSchedule.FOUR_BY_THREE,
+            0, anchor, emptySet())
+        assertEquals(true, LocalDate.of(2026, 12, 31) in december)
+        assertEquals(false, LocalDate.of(2027, 1, 1) in january)
+        assertEquals(true, LocalDate.of(2027, 1, 4) in january)
+        val leap = WorkCalendar.days(YearMonth.of(2028, 2), WorkSchedule.TWELVE_BY_THIRTY_SIX,
+            0, LocalDate.of(2028, 2, 28), emptySet())
+        assertEquals(true, LocalDate.of(2028, 2, 28) in leap)
+        assertEquals(false, LocalDate.of(2028, 2, 29) in leap)
+    }
+
 }

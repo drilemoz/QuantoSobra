@@ -1,6 +1,8 @@
 package br.com.quantosobra.ui
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,7 +41,7 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
         "O que entra e o que sai do contracheque.", "Como você chega ao trabalho?",
         "Um calendário. Sem contar dias na cabeça.", "Quanto custa chegar e voltar?",
         "O valor certo, sem desconto em dobro.", "Aluguel e taxas, tudo no mesmo lugar.",
-        "Pequenas contas que fazem diferença.", "Seu mercado sem preços inventados.", "Seu orçamento começa aqui.")
+        "Pequenas contas que fazem diferença.", "Produtos, embalagens e preços ajustáveis.", "Seu orçamento começa aqui.")
     val count = titles.size
     val compact = LocalConfiguration.current.screenHeightDp < 760
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
@@ -50,6 +52,8 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
     var salaryExternalRevision by remember { mutableIntStateOf(0) }
     var showSalaryRules by remember { mutableStateOf(false) }
     var chooseEssential by remember { mutableStateOf(false) }
+    var wizardAdding by remember { mutableStateOf(false) }
+    var wizardEditing by remember { mutableStateOf<FoodProduct?>(null) }
     val set: (Budget) -> Unit = { budget = it }
     fun deduction(id: Long, label: String): Long = s.deductions.find { it.id == id }?.amountCents ?: 0L
     fun writeDeduction(id: Long, label: String, amount: Long) {
@@ -62,8 +66,8 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
         val anchor = runCatching { LocalDate.parse(t2.workAnchorDate) }.getOrNull() ?: LocalDate.now()
         val dates = WorkCalendar.parseDates(t2.customWorkDates)
         val countDays = WorkCalendar.days(month, t2.workSchedule, t2.workWeekdaysMask, anchor, dates).size
-        set(budget.copy(transport = t2.copy(daysPerMonth = if (t2.workSchedule == WorkSchedule.MANUAL)
-            t2.daysPerMonth else countDays)))
+        set(budget.copy(transport = t2.copy(workCalendarMonth = month.toString(),
+            daysPerMonth = if (t2.workSchedule == WorkSchedule.MANUAL) t2.daysPerMonth else countDays)))
     }
     Column(Modifier.fillMaxSize().background(Color(0xFFF8F4FC)).navigationBarsPadding().imePadding()) {
         if (!imeVisible) {
@@ -103,7 +107,8 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                 if (!imeVisible) Text(subtitles[step], color = Muted, fontSize = 12.sp, maxLines = 2)
             }
         }
-        Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp),
+        Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp)
+            .verticalScroll(remember(step) { androidx.compose.foundation.ScrollState(0) }),
             verticalArrangement = Arrangement.spacedBy(spacing)) {
             when (step) {
                 0 -> {
@@ -309,14 +314,29 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                             { set(budget.copy(foodOutsideCents = it)) }, compact = true)
                         OutlinedButton(onClick = { chooseEssential = true },
                             modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(15.dp)) {
-                            Text("＋ Escolher alimentos essenciais", fontSize = 12.sp)
+                            Text("＋ Carregar produtos básicos", fontSize = 12.sp)
                         }
-                        if (budget.foodProducts.isNotEmpty()) Text(
-                            "${budget.foodProducts.size} produtos selecionados • edite preços e quantidades no painel Alimentação",
-                            color = Muted, fontSize = 11.sp)
+                        OutlinedButton(onClick = { wizardAdding = true }, modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(15.dp)) { Text("＋ Adicionar produto personalizado", fontSize = 12.sp) }
+                        if (budget.foodProducts.isNotEmpty()) {
+                            val pending = budget.foodProducts.count { it.unitPriceCents <= 0L }
+                            Text("${budget.foodProducts.size} produtos • $pending preço(s) pendente(s)",
+                                color = Muted, fontSize = 11.sp)
+                            budget.foodProducts.forEach { item ->
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(item.name, color = Ink, fontSize = 13.sp)
+                                        Text("${Money.quantityInput(item.quantityHundredths)} × ${item.unit} • " +
+                                            if (item.unitPriceCents > 0L) Money.format(BudgetMath.productCost(item))
+                                            else "Preço pendente", color = Muted, fontSize = 10.sp)
+                                    }
+                                    TextButton(onClick = { wizardEditing = item }) { Text("Editar", fontSize = 11.sp) }
+                                }
+                            }
+                        }
                         if (!imeVisible) WizardAmountLine("Alimentação paga em dinheiro", BudgetMath.foodPaidFromCash(budget), true)
                     }
-                    if (!imeVisible) WizardNote("Os itens essenciais entram sem preço. Só serão contabilizados quando você informar valores reais; a estimativa continua enquanto a lista estiver incompleta.")
+                    if (!imeVisible) WizardNote("Referências de preços são indicativas, não ofertas ao vivo. Você pode editar os itens; enquanto houver preço pendente, a estimativa protege o orçamento.")
                 }
                 10 -> {
                     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp))
@@ -369,11 +389,27 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
     }
     if (showSalaryRules) PayrollRulesDialog(budget) { showSalaryRules = false }
     if (chooseEssential) EssentialsPicker(
-        currentNames = budget.foodProducts.map { it.name }.toSet(),
+        current = budget.foodProducts,
         dismiss = { chooseEssential = false },
         apply = { chosen ->
-            budget = budget.copy(foodProducts = EssentialProducts.add(budget.foodProducts, chosen))
+            budget = budget.copy(foodProducts = EssentialProducts.merge(budget.foodProducts, chosen))
             chooseEssential = false
+        }
+    )
+    if (wizardAdding || wizardEditing != null) ProductDialog(
+        initial = wizardEditing,
+        dismiss = { wizardAdding = false; wizardEditing = null },
+        save = { name, price, qty, unit ->
+            val target = wizardEditing
+            val list = if (target == null) budget.foodProducts + FoodProduct(
+                (budget.foodProducts.maxOfOrNull { it.id } ?: 0L) + 1L,
+                name, price, qty, unit
+            ) else budget.foodProducts.map { if (it.id == target.id) it.copy(
+                name = name, unitPriceCents = price, quantityHundredths = qty,
+                unit = unit, priceOrigin = "MANUAL") else it }
+            budget = budget.copy(foodProducts = list)
+            wizardAdding = false
+            wizardEditing = null
         }
     )
 }
@@ -454,15 +490,21 @@ private fun TinyModeChip(label: String, selected: Boolean, modifier: Modifier = 
 /** Cartões da escala + calendário diretamente ajustável, seguindo o layout do wizard. */
 @Composable
 fun WizardCalendar(t: TransportConfig, compact: Boolean, changed: (TransportConfig) -> Unit) {
-    val month = WorkCalendar.month(t.workCalendarMonth)
+    var month by remember { mutableStateOf(WorkCalendar.month(t.workCalendarMonth)) }
+    var choosingAnchor by remember { mutableStateOf(false) }
+    val budgetMonth = WorkCalendar.month(t.workCalendarMonth)
     val anchor = runCatching { LocalDate.parse(t.workAnchorDate) }.getOrNull() ?: month.atDay(1)
     val customDates = WorkCalendar.parseDates(t.customWorkDates)
-    val activeDays = WorkCalendar.days(month, t.workSchedule, t.workWeekdaysMask, anchor, customDates)
+    val extra = WorkCalendar.parseDates(t.workExtraDates)
+    val off = WorkCalendar.parseDates(t.workOffDates)
+    val baseDays = WorkCalendar.days(month, t.workSchedule, t.workWeekdaysMask, anchor, customDates)
+    val activeDays = WorkCalendar.days(month, t.workSchedule, t.workWeekdaysMask, anchor, customDates, extra, off)
     val dateLabel = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", Locale.forLanguageTag("pt-BR"))
     val scaleCards = listOf(Triple("5×2", "5 dias", 31), Triple("6×1", "6 dias", 63),
         Triple("12×36", "Plantão", -1), Triple("4×3", "4 dias", 15), Triple("Outra", "Personalizar", -2))
     val selectedScale = when {
         t.workSchedule == WorkSchedule.TWELVE_BY_THIRTY_SIX -> 2
+        t.workSchedule == WorkSchedule.FOUR_BY_THREE -> 3
         t.workSchedule == WorkSchedule.CUSTOM -> 4
         t.workSchedule == WorkSchedule.WEEKLY && t.workWeekdaysMask == 31 -> 0
         t.workSchedule == WorkSchedule.WEEKLY && t.workWeekdaysMask == 63 -> 1
@@ -474,8 +516,10 @@ fun WizardCalendar(t: TransportConfig, compact: Boolean, changed: (TransportConf
             scaleCards.take(3).forEachIndexed { index, item ->
                 ScaleCard(item.first, item.second, selectedScale == index, Modifier.weight(1f), compact) {
                     val config = if (item.third == -1) t.copy(workSchedule = WorkSchedule.TWELVE_BY_THIRTY_SIX,
-                        workAnchorDate = if (t.workAnchorDate.isBlank()) month.atDay(1).toString() else t.workAnchorDate)
-                    else t.copy(workSchedule = WorkSchedule.WEEKLY, workWeekdaysMask = item.third)
+                        workAnchorDate = if (t.workAnchorDate.isBlank()) month.atDay(1).toString() else t.workAnchorDate,
+                        workExtraDates = "", workOffDates = "")
+                    else t.copy(workSchedule = WorkSchedule.WEEKLY, workWeekdaysMask = item.third,
+                        workExtraDates = "", workOffDates = "")
                     changed(config)
                 }
             }
@@ -485,8 +529,11 @@ fun WizardCalendar(t: TransportConfig, compact: Boolean, changed: (TransportConf
                 ScaleCard(item.first, item.second, selectedScale == ix + 3, Modifier.weight(1f), compact) {
                     changed(if (item.third == -2) t.copy(workSchedule = WorkSchedule.CUSTOM,
                         customWorkDates = if (t.workSchedule == WorkSchedule.CUSTOM) t.customWorkDates
-                            else WorkCalendar.encodeDates(activeDays))
-                    else t.copy(workSchedule = WorkSchedule.WEEKLY, workWeekdaysMask = item.third))
+                            else WorkCalendar.encodeDates(activeDays),
+                        workExtraDates = "", workOffDates = "")
+                    else t.copy(workSchedule = WorkSchedule.FOUR_BY_THREE,
+                        workAnchorDate = month.atDay(1).with(java.time.DayOfWeek.MONDAY).toString(),
+                        workExtraDates = "", workOffDates = ""))
                 }
             }
             Spacer(Modifier.weight(1f))
@@ -505,8 +552,11 @@ fun WizardCalendar(t: TransportConfig, compact: Boolean, changed: (TransportConf
                     }
                 }
             }
-        } else if (t.workSchedule == WorkSchedule.TWELVE_BY_THIRTY_SIX) {
-            Text("Toque na data de referência do plantão para alternar os dias.", color = Muted, fontSize = 11.sp)
+        } else if (t.workSchedule == WorkSchedule.TWELVE_BY_THIRTY_SIX || t.workSchedule == WorkSchedule.FOUR_BY_THREE) {
+            Text("Ciclo contínuo: toque em um dia para registrar uma exceção individual.", color = Muted, fontSize = 11.sp)
+            OutlinedButton(onClick = { choosingAnchor = !choosingAnchor }) {
+                Text(if (choosingAnchor) "Toque na data inicial do ciclo" else "Alterar data inicial do ciclo", fontSize = 11.sp)
+            }
         } else if (t.workSchedule == WorkSchedule.CUSTOM) {
             Text("Toque nos dias em que realmente vai trabalhar.", color = Muted, fontSize = 11.sp)
         }
@@ -515,12 +565,12 @@ fun WizardCalendar(t: TransportConfig, compact: Boolean, changed: (TransportConf
             Column(Modifier.padding(horizontal = 12.dp, vertical = if (compact) 8.dp else 12.dp),
                 verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { changed(t.copy(workCalendarMonth = month.minusMonths(1).toString())) },
+                    TextButton(onClick = { month = month.minusMonths(1) },
                         modifier = Modifier.width(37.dp)) { Text("‹", fontSize = 23.sp) }
                     Text(month.format(dateLabel).replaceFirstChar { it.titlecase(Locale.forLanguageTag("pt-BR")) },
                         modifier = Modifier.weight(1f), color = Ink, textAlign = TextAlign.Center,
                         fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    TextButton(onClick = { changed(t.copy(workCalendarMonth = month.plusMonths(1).toString())) },
+                    TextButton(onClick = { month = month.plusMonths(1) },
                         modifier = Modifier.width(37.dp)) { Text("›", fontSize = 23.sp) }
                 }
                 Row(Modifier.fillMaxWidth()) {
@@ -539,14 +589,22 @@ fun WizardCalendar(t: TransportConfig, compact: Boolean, changed: (TransportConf
                             val selected = date != null && date in activeDays
                             Box(Modifier.weight(1f).height(if (compact) 25.dp else 32.dp)) {
                                 if (date != null) Surface(onClick = {
-                                    val updated = when (t.workSchedule) {
-                                        WorkSchedule.WEEKLY -> t.copy(workWeekdaysMask =
-                                            t.workWeekdaysMask xor (1 shl (date.dayOfWeek.value - 1)))
-                                        WorkSchedule.TWELVE_BY_THIRTY_SIX -> t.copy(workAnchorDate = date.toString())
-                                        WorkSchedule.CUSTOM -> t.copy(customWorkDates = WorkCalendar.encodeDates(
-                                            if (date in customDates) customDates - date else customDates + date))
-                                        WorkSchedule.MANUAL -> t.copy(workSchedule = WorkSchedule.CUSTOM,
+                                    val updated = when {
+                                        choosingAnchor && t.workSchedule in listOf(
+                                            WorkSchedule.TWELVE_BY_THIRTY_SIX, WorkSchedule.FOUR_BY_THREE) -> {
+                                            choosingAnchor = false
+                                            t.copy(workAnchorDate = date.toString(), workExtraDates = "", workOffDates = "")
+                                        }
+                                        t.workSchedule == WorkSchedule.MANUAL -> t.copy(workSchedule = WorkSchedule.CUSTOM,
                                             customWorkDates = WorkCalendar.encodeDates(setOf(date)))
+                                        t.workSchedule == WorkSchedule.CUSTOM -> t.copy(customWorkDates =
+                                            WorkCalendar.encodeDates(if (date in customDates) customDates - date else customDates + date))
+                                        else -> {
+                                            val (newExtra, newOff) = WorkCalendar.toggleDate(
+                                                date, activeDays, extra, off, date in baseDays)
+                                            t.copy(workExtraDates = WorkCalendar.encodeDates(newExtra),
+                                                workOffDates = WorkCalendar.encodeDates(newOff))
+                                        }
                                     }
                                     changed(updated)
                                 }, modifier = Modifier.fillMaxSize(),
@@ -574,7 +632,13 @@ fun WizardCalendar(t: TransportConfig, compact: Boolean, changed: (TransportConf
                 }
             }
         }
-        Text("Prévia de ${month.format(dateLabel)}. Feriados, férias e folgas precisam ser ajustados.",
+        Text("Mês usado no orçamento do transporte: ${budgetMonth.format(dateLabel)} " +
+            "(${t.daysPerMonth} dias). Trocar o mês da prévia não altera seu custo.",
+            color = Muted, fontSize = 10.sp)
+        if (month != budgetMonth) OutlinedButton(onClick = {
+            changed(t.copy(workCalendarMonth = month.toString()))
+        }, modifier = Modifier.fillMaxWidth()) { Text("Usar este mês no orçamento", fontSize = 12.sp) }
+        Text("Toque num dia para marcar folga ou trabalho excepcional. Feriados e férias não são presumidos.",
             color = Muted, fontSize = 10.sp, lineHeight = 12.sp)
     }
 }

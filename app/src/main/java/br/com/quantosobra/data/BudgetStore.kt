@@ -53,7 +53,8 @@ class BudgetStore(context: Context) {
                 id = p.optLong("id", index.toLong()), name = name,
                 unitPriceCents = p.nonNegativeLong("price"),
                 quantityHundredths = p.nonNegativeInt("qty", 100, 100_000),
-                unit = p.optString("unit", "un").take(20).ifBlank { "un" }
+                unit = p.optString("unit", "un").take(32).ifBlank { "un" },
+                priceOrigin = if (p.optString("priceOrigin") == "REFERENCIA_ATACADAO") "REFERENCIA_ATACADAO" else "MANUAL"
             )
         }
         val others = j.optJSONArray("extras") ?: JSONArray()
@@ -125,7 +126,9 @@ class BudgetStore(context: Context) {
                 workWeekdaysMask = t.nonNegativeInt("weekdays", 31, 127),
                 workCalendarMonth = t.optString("calendarMonth").take(7),
                 workAnchorDate = t.optString("anchorDate").take(10),
-                customWorkDates = t.optString("customDates").take(5000)
+                customWorkDates = t.optString("customDates").take(5000),
+                workExtraDates = t.optString("extraDates").take(5000),
+                workOffDates = t.optString("offDates").take(5000)
             ),
             extras = extras,
             reserveCents = j.nonNegativeLong("reserve")
@@ -133,7 +136,7 @@ class BudgetStore(context: Context) {
     }
 
     private fun toJson(b: Budget): JSONObject = JSONObject().apply {
-        put("schema", 5)
+        put("schema", 6)
         put("workType", b.workType.name)
         put("rentPeriod", b.rentPeriod.name)
         put("iptuPeriod", b.iptuPeriod.name)
@@ -169,6 +172,7 @@ class BudgetStore(context: Context) {
             b.foodProducts.forEach { p -> put(JSONObject().apply {
                 put("id", p.id); put("name", p.name); put("price", p.unitPriceCents)
                 put("qty", p.quantityHundredths); put("unit", p.unit)
+                put("priceOrigin", p.priceOrigin)
             }) }
         })
         put("extras", JSONArray().apply {
@@ -194,6 +198,8 @@ class BudgetStore(context: Context) {
             put("calendarMonth", b.transport.workCalendarMonth)
             put("anchorDate", b.transport.workAnchorDate)
             put("customDates", b.transport.customWorkDates)
+            put("extraDates", b.transport.workExtraDates)
+            put("offDates", b.transport.workOffDates)
         })
     }
 }

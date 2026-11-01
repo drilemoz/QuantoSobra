@@ -1,8 +1,9 @@
-# Quanto Sobra? — 0.1.0-alpha.12
+# Quanto Sobra? — 0.1.0-alpha.13
 
-**31/10/2026 · versionCode 12**
+**01/11/2026 · versionCode 13**
 
-- Botão **Usar** preenche e atualiza imediatamente o campo de salário bruto, inclusive quando a edição antiga ainda tinha foco; resumo de INSS, IRRF e líquido recalculado.
-- Consulta online ao salário mínimo corrigida: 12 registros no endpoint SGS 1619 em vez de 24 (limite da API: 20).
-- Mensagem de confirmação da aplicação e diagnóstico simples de falhas de conexão, mantendo o valor offline.
-- Sem alterar cálculos fiscais, dados salvos, assinatura ou ID do aplicativo. Build Android/consulta real continuam pendentes de validação.
+- Produtos básicos com quantidades e preços indicativos editáveis e sem duplicar os itens já existentes; fonte de referência: catálogo do Atacadão consultado em 01/11/2026. Valores locais, sujeitos a variação.
+- Wizard e Alimentação permitem criar e editar preços, embalagens e quantidades; subtotal detalhado versus estimativa e indicação de preços pendentes.
+- Escalas 5×2, 6×1, 12×36 e 4×3, com exceções por data e seleção explícita do mês utilizado no transporte.
+- Versão e JSON schema 6 com novos campos opcionais; dados de versões anteriores preservados. Nenhuma alteração na assinatura ou permissões.
+- Build Android completo e testes de interface em aparelho dependem da execução do workflow de CI.

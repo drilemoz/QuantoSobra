@@ -45,11 +45,12 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 val anchor = runCatching { java.time.LocalDate.parse(changed.workAnchorDate) }
                     .getOrNull() ?: month.atDay(1)
                 val count = WorkCalendar.days(month, changed.workSchedule, changed.workWeekdaysMask,
-                    anchor, WorkCalendar.parseDates(changed.customWorkDates)).size
-                update(changed.copy(daysPerMonth = if (changed.workSchedule == WorkSchedule.MANUAL)
-                    changed.daysPerMonth else count))
+                    anchor, WorkCalendar.parseDates(changed.customWorkDates),
+                    WorkCalendar.parseDates(changed.workExtraDates), WorkCalendar.parseDates(changed.workOffDates)).size
+                update(changed.copy(workCalendarMonth = month.toString(),
+                    daysPerMonth = if (changed.workSchedule == WorkSchedule.MANUAL) changed.daysPerMonth else count))
             }
-            Hint("As datas selecionadas atualizam automaticamente o custo das passagens.")
+            Hint("Mudanças de escala e datas ajustam os dias do mês-base; navegar pela prévia não altera o orçamento.")
         }
         SurfaceCard {
             FieldAmount("Valor de cada passagem", t.fareCents,
@@ -57,7 +58,7 @@ fun TransportScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             FieldCount("Quantas passagens por dia?", t.ridesPerDay, 0..20,
                 { update(t.copy(ridesPerDay = it)) })
             FieldCount("Quantos dias de transporte por mês?", t.daysPerMonth, 0..31,
-                { update(t.copy(daysPerMonth = it)) })
+                { update(t.copy(daysPerMonth = it, workSchedule = WorkSchedule.MANUAL)) })
             Hint("Use os dias em que realmente precisa ir ao trabalho e voltar. Inclua deslocamentos extras na quantidade diária, se necessário.")
         }
         SurfaceCard {

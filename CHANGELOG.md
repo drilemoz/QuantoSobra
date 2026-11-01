@@ -1,5 +1,13 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.13 (01/11/2026)
+
+- Inclusão de oito produtos básicos com referência editável de preços de catálogo Atacadão, seleção individual, quantidades e embalagens configuráveis e proteção de itens existentes contra sobrescrita/duplicação. A consulta não é automática e preços são indicativos.
+- Editor acessível no wizard e em Alimentação; botão **Carregar produtos básicos**, identificação de valores pendentes e separação de subtotal real versus estimativa de orçamento.
+- Calendário com ciclo 4×3 ancorado, ajuste individual de datas em escalas, referência 12×36 configurável e mês de prévia independente do mês usado no transporte.
+- Schema 6 com três campos opcionais, sem migração destrutiva; versão, Artifact, README, validação e novidades sincronizados.
+
+
 ## 0.1.0-alpha.12 (31/10/2026)
 
 - Corrigido o botão **Usar** da referência do salário mínimo: sincroniza o texto do campo de salário bruto no wizard e na central de salário, mesmo após campo conservar foco; recalcula automaticamente o contracheque e confirma a aplicação.

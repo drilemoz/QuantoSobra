@@ -43,7 +43,9 @@ data class FoodProduct(
     /** 100 = 1 unidade; 250 = 2,5 unidades. */
     val quantityHundredths: Int,
     /** Unidade apenas descritiva; o preço sempre é por unidade informada. */
-    val unit: String = "un"
+    val unit: String = "un",
+    /** REFERENCIA_ATACADAO = preço indicativo carregado em 01/11/2026; MANUAL = valor informado. */
+    val priceOrigin: String = "MANUAL"
 )
 
 enum class OtherCategory(val displayName: String) {
@@ -79,7 +81,10 @@ data class TransportConfig(
     val workWeekdaysMask: Int = 31,
     val workCalendarMonth: String = "",
     val workAnchorDate: String = "",
-    val customWorkDates: String = ""
+    val customWorkDates: String = "",
+    /** Exceções pontuais à escala base, acumuladas entre meses. */
+    val workExtraDates: String = "",
+    val workOffDates: String = ""
 )
 
 data class Budget(

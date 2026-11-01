@@ -1,10 +1,12 @@
 # Versionamento — Quanto Sobra?
 
-- Atual: `0.1.0-alpha.12`, `versionCode 12`.
-- Próxima alteração: `0.1.0-alpha.13`, `versionCode 13`.
+- Atual: `0.1.0-alpha.13`, `versionCode 13`.
+- Próxima alteração: `0.1.0-alpha.14`, `versionCode 14`.
 - Pacote fixo: `br.com.quantosobra`.
 - Sincronizar Gradle, workflow Artifact, README, CHANGELOG, RELEASE_NOTES, docs/VALIDATION e interface.
-- Dados antigos em `SharedPreferences` `quanto_sobra_v1` preservados. Schema 5 inclui `workType`, `rentPeriod`, `iptuPeriod`, `foodEstimate`, transporte por modalidade. JSON v1/v2/v3 usa defaults compatíveis.
+- Dados antigos em `SharedPreferences` `quanto_sobra_v1` preservados. Schema 6 inclui `workType`, `rentPeriod`, `iptuPeriod`, `foodEstimate`, transporte por modalidade. JSON v1/v2/v3 usa defaults compatíveis.
 - Wizard abre em instalação limpa/reinstalação sem dados e após a limpeza interna; atualizações normais preservam o orçamento e mostram novidades uma vez por versão. A opção de refazer o assistente fica na engrenagem, preservando valores atuais até a conclusão.
 
 - Alpha.10 preserva JSON schema 4 e anteriores ao ler, adicionando campos opcionais `unit`, `percentBP`, `percentBase` e `companyFixed`.
+
+- Alpha.13 preserva dados antigos ao ler JSON schema 1–5; schema 6 adiciona somente campos opcionais `priceOrigin`, `extraDates` e `offDates`, mantendo os valores existentes.
