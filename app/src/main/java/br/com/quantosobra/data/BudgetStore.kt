@@ -45,6 +45,7 @@ class BudgetStore(context: Context) {
         optInt(key, default).coerceIn(0, max)
 
     private fun fromJson(j: JSONObject): Budget {
+        val oldFlexibleFoodCoverage = j.optInt("schema", 1) < 8
         val food = j.optJSONArray("food") ?: JSONArray()
         val products = (0 until minOf(food.length(), 500)).mapNotNull { index ->
             val p = food.optJSONObject(index) ?: return@mapNotNull null
@@ -107,7 +108,17 @@ class BudgetStore(context: Context) {
                 foodBenefitCents = if (salaryJ.has("foodVA")) salaryJ.nonNegativeLong("foodVA")
                     else salaryJ.nonNegativeLong("foodBenefit"),
                 mealVoucherCents = salaryJ.nonNegativeLong("foodVR"),
-                deductions = deductions
+                deductions = deductions,
+                foodDiscountMethod = FoodDiscountMethod.entries.find {
+                    it.name == salaryJ.optString("foodDiscountMethod")
+                } ?: FoodDiscountMethod.UNKNOWN,
+                foodDeductionAlreadyInNet = salaryJ.optBoolean("foodDeductionAlreadyInNet", true),
+                vaForMarket = salaryJ.optBoolean("vaForMarket", true),
+                // Preserva saldos de versões antigas: anteriormente ambos podiam abater toda alimentação.
+                // O usuário pode restringir por tipo de compra nas novas telas.
+                vaForMeals = salaryJ.optBoolean("vaForMeals", oldFlexibleFoodCoverage),
+                vrForMarket = salaryJ.optBoolean("vrForMarket", oldFlexibleFoodCoverage),
+                vrForMeals = salaryJ.optBoolean("vrForMeals", true)
             ),
             foodEstimateCents = j.nonNegativeLong("foodEstimate"),
             rentCents = j.nonNegativeLong("rent"),
@@ -151,7 +162,7 @@ class BudgetStore(context: Context) {
     }
 
     private fun toJson(b: Budget): JSONObject = JSONObject().apply {
-        put("schema", 7)
+        put("schema", 8)
         put("workType", b.workType.name)
         put("rentPeriod", b.rentPeriod.name)
         put("iptuPeriod", b.iptuPeriod.name)
@@ -164,6 +175,12 @@ class BudgetStore(context: Context) {
             put("foodBenefit", b.salary.totalFoodBenefitCents)
             put("foodVA", b.salary.foodBenefitCents)
             put("foodVR", b.salary.mealVoucherCents)
+            put("foodDiscountMethod", b.salary.foodDiscountMethod.name)
+            put("foodDeductionAlreadyInNet", b.salary.foodDeductionAlreadyInNet)
+            put("vaForMarket", b.salary.vaForMarket)
+            put("vaForMeals", b.salary.vaForMeals)
+            put("vrForMarket", b.salary.vrForMarket)
+            put("vrForMeals", b.salary.vrForMeals)
             put("deductions", JSONArray().apply {
                 b.salary.deductions.forEach { d -> put(JSONObject().apply {
                     put("id", d.id); put("name", d.name); put("value", d.amountCents)

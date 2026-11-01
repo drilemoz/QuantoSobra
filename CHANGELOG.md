@@ -1,5 +1,13 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.15 (01/11/2026)
+
+- Desconto de VA/VR específico no wizard e em Meu salário: desconhecido (sem desconto presumido), sem cobrança, percentual da soma VA+VR ou valor real. Avisos informativos sobre referência de 20% do PAT com ressalva do custo direto global e apuração, sem impedir registrar valores reais.
+- Evita desconto duplo com salário líquido informado e permite declarar explicitamente quando o desconto ainda precisa ser feito. Salário calculado do bruto deduz uma vez; dados antigos preservados.
+- Alimentação usa distribuição de VA/VR por compras e refeições conforme aceitação indicada, sem pressupor uso universal; orçamento antigo conserva o modelo de abatimento flexível até revisão. UI de Alimentação e wizard permitem ajustes.
+- Panorama final com alerta de saldo estreito ou negativo, preço pendente, resumo de cartões e atalhos para revisar categorias durante o assistente.
+- Schema 8 com propriedades opcionais; versionCode 15, catálogos e Artifacts sincronizados; testes Kotlin/JVM e inspeção sintática locais. Build Android e teste em aparelho ainda pendentes.
+
 ## 0.1.0-alpha.14 (01/11/2026)
 
 - Correção da edição monetária: removida seleção forçada do texto ao focar e reformatação em cada tecla; TextFieldValue mantém seleção e composição do teclado, com formato final em reais somente no fim da edição. Corrigido também nos diálogos.

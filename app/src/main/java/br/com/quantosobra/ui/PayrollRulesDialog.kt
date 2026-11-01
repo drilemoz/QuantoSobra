@@ -42,7 +42,7 @@ fun PayrollRulesDialog(budget: Budget? = null, close: () -> Unit) {
         Text("Vale-transporte • até 6%", color = Purple, fontWeight = FontWeight.Bold)
         Hint("Na regra geral CLT, a contribuição do trabalhador é limitada a 6% do salário básico e ao custo efetivo do transporte coletivo. Condições mais favoráveis podem existir.")
         Text("Vale-alimentação e refeição • PAT", color = Purple, fontWeight = FontWeight.Bold)
-        Hint("Quando aplicável o PAT, a participação do trabalhador é limitada a 20% do custo direto do benefício, não do salário. Informe o desconto real do holerite.")
+        Hint("No PAT, a participação é limitada a 20% do custo direto, com apuração global no período aplicável (até 12 meses). Esse custo pode diferir do crédito recebido; não presuma cobrança automática. Confira o holerite e a norma coletiva.")
         Text("FGTS não é desconto do empregado", color = Purple, fontWeight = FontWeight.Bold)
         Hint("Plano de saúde, outros benefícios e descontos autorizados não possuem um percentual nacional único. Confira seu contracheque.")
         Hint("Referências: INSS/Receita 2026; Lei 7.418/1985; Ministério do Trabalho (PAT). São estimativas e não substituem o holerite.")

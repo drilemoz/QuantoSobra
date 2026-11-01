@@ -8,6 +8,8 @@ import kotlin.math.min
 
 /** O modo líquido mantém integralmente os dados de versões anteriores. */
 enum class SalaryMode { NET, GROSS }
+/** UNKNOWN não cria desconto presumido; PAT é referência, não cobrança automática. */
+enum class FoodDiscountMethod { UNKNOWN, NONE, PERCENT, FIXED }
 /** Vínculo declarado pelo usuário. INSS/IR da central só são aplicados à CLT. */
 enum class WorkType { UNKNOWN, CLT, MEI_PJ, SELF_EMPLOYED, PUBLIC_SERVANT, OTHER }
 enum class RentPeriod { MONTHLY, YEARLY }
@@ -33,7 +35,15 @@ data class SalaryConfig(
     /** Compatibilidade: valor antigo de VA/VR é tratado como vale-alimentação. */
     val foodBenefitCents: Long = 0,
     val mealVoucherCents: Long = 0,
-    val deductions: List<PayrollDeduction> = emptyList()
+    val deductions: List<PayrollDeduction> = emptyList(),
+    /** Se o salário informado já é líquido do desconto de alimentação, nunca abater outra vez. */
+    val foodDeductionAlreadyInNet: Boolean = true,
+    val foodDiscountMethod: FoodDiscountMethod = FoodDiscountMethod.UNKNOWN,
+    /** Aceitação é configurada pelo usuário; não pressupor que todos os comércios aceitam ambos. */
+    val vaForMarket: Boolean = true,
+    val vaForMeals: Boolean = false,
+    val vrForMarket: Boolean = false,
+    val vrForMeals: Boolean = true
 ) {
     val totalFoodBenefitCents: Long get() = foodBenefitCents.coerceAtLeast(0) + mealVoucherCents.coerceAtLeast(0)
 }
@@ -130,6 +140,71 @@ data class Budget(
     val reserveCents: Long = 0
 )
 
+/** Custos pagos por cartões não são dinheiro. A cobertura nunca supera as despesas elegíveis. */
+data class FoodBenefitCoverage(
+    val vaMarketCents: Long = 0,
+    val vaMealsCents: Long = 0,
+    val vrMarketCents: Long = 0,
+    val vrMealsCents: Long = 0
+) {
+    val vaUsedCents: Long get() = vaMarketCents + vaMealsCents
+    val vrUsedCents: Long get() = vrMarketCents + vrMealsCents
+    val totalUsedCents: Long get() = vaUsedCents + vrUsedCents
+}
+
+object FoodBenefitMath {
+    const val DEDUCTION_ID = 900002L
+    private const val TITLE = "Desconto de VA/VR"
+
+    fun entry(s: SalaryConfig): PayrollDeduction? = s.deductions.firstOrNull { it.id == DEDUCTION_ID }
+    /** Recupera o desconto fixo gravado pela alpha.14, sem o duplicar. */
+    fun method(s: SalaryConfig): FoodDiscountMethod =
+        if (s.foodDiscountMethod != FoodDiscountMethod.UNKNOWN) s.foodDiscountMethod
+        else if (entry(s) != null) FoodDiscountMethod.FIXED else FoodDiscountMethod.UNKNOWN
+
+    fun deductionCents(s: SalaryConfig): Long {
+        if (method(s) == FoodDiscountMethod.NONE || method(s) == FoodDiscountMethod.UNKNOWN) return 0L
+        val d = entry(s) ?: return 0L
+        val basisPoints = d.percentBasisPoints
+        return if (basisPoints != null) {
+            (s.totalFoodBenefitCents * basisPoints.coerceIn(0, 10_000) + 5_000L) / 10_000L
+        } else d.amountCents.coerceAtLeast(0L)
+    }
+
+    fun change(s: SalaryConfig, method: FoodDiscountMethod, fixedCents: Long = 0L,
+               percentageBP: Int = 0): SalaryConfig {
+        val other = s.deductions.filterNot { it.id == DEDUCTION_ID }
+        val entry = when (method) {
+            FoodDiscountMethod.FIXED -> PayrollDeduction(DEDUCTION_ID, TITLE, fixedCents.coerceAtLeast(0L))
+            FoodDiscountMethod.PERCENT -> PayrollDeduction(DEDUCTION_ID, TITLE, 0L,
+                percentageBP.coerceIn(0, 10_000), "food")
+            else -> null
+        }
+        return s.copy(foodDiscountMethod = method, deductions = other + listOfNotNull(entry))
+    }
+
+    /** Comparação informativa: 20% sobre o crédito é aproximação do custo direto do PAT. */
+    fun exceedsPatReference(s: SalaryConfig): Boolean =
+        s.totalFoodBenefitCents > 0L && deductionCents(s) * 5L > s.totalFoodBenefitCents
+
+    /** Primeiro VA no mercado e VR nas refeições; sobras só migram se o usuário permitir. */
+    fun coverage(b: Budget): FoodBenefitCoverage {
+        val s = b.salary
+        var market = BudgetMath.foodMarket(b).coerceAtLeast(0L)
+        var meals = (b.foodOutsideCents + BudgetMath.recurringMealCost(b)).coerceAtLeast(0L)
+        var va = s.foodBenefitCents.coerceAtLeast(0L)
+        var vr = s.mealVoucherCents.coerceAtLeast(0L)
+        fun take(amount: Long, limit: Long): Long = min(amount, limit)
+        val vaMarket = if (s.vaForMarket) take(va, market) else 0L
+        va -= vaMarket; market -= vaMarket
+        val vrMeals = if (s.vrForMeals) take(vr, meals) else 0L
+        vr -= vrMeals; meals -= vrMeals
+        val vaMeals = if (s.vaForMeals) take(va, meals) else 0L
+        val vrMarket = if (s.vrForMarket) take(vr, market) else 0L
+        return FoodBenefitCoverage(vaMarket, vaMeals, vrMarket, vrMeals)
+    }
+}
+
 object BudgetMath {
     fun productCost(item: FoodProduct): Long =
         (item.unitPriceCents.coerceAtLeast(0) * item.quantityHundredths.coerceIn(0, 100_000) + 50L) / 100L
@@ -173,7 +248,8 @@ object BudgetMath {
         meal.unitPriceCents.coerceAtLeast(0L) * mealOccurrences(b, meal)
     fun recurringMealCost(b: Budget): Long = b.recurringMeals.sumOf { mealCost(b, it) }
     fun food(b: Budget): Long = b.foodOutsideCents + foodMarket(b) + recurringMealCost(b)
-    fun foodPaidFromCash(b: Budget): Long = (food(b) - b.salary.totalFoodBenefitCents).coerceAtLeast(0L)
+    fun foodPaidFromCash(b: Budget): Long =
+        (food(b) - FoodBenefitMath.coverage(b).totalUsedCents).coerceAtLeast(0L)
     /** Somente água, eletricidade e internet são mostradas em Contas da casa. */
     fun bills(b: Budget): Long = b.electricityCents + b.waterCents + b.internetCents
     /** Preserva valores já cadastrados de celular, gás e outras contas no orçamento. */
@@ -214,8 +290,7 @@ object BudgetMath {
             else -> 0L
         }
     }
-    fun salaryNet(b: Budget): Long = if (b.salary.mode == SalaryMode.NET) b.netSalaryCents
-        else SalaryMath.breakdown(b).netCents
+    fun salaryNet(b: Budget): Long = SalaryMath.breakdown(b).netCents
     fun transportBudgetCost(b: Budget): Long = if (b.salary.mode == SalaryMode.NET)
         transportFromAvailable(b.transport)
     else (transportEmployeeCost(b.transport, b.salary.grossCents) - payrollTransport(b)).coerceAtLeast(0L)
@@ -305,7 +380,10 @@ object SalaryMath {
 
     fun breakdown(b: Budget): SalaryBreakdown {
         val s = b.salary
-        if (s.mode == SalaryMode.NET) return SalaryBreakdown(b.netSalaryCents, 0, 0, 0, 0, b.netSalaryCents)
+        if (s.mode == SalaryMode.NET) {
+            val additional = if (s.foodDeductionAlreadyInNet) 0L else FoodBenefitMath.deductionCents(s)
+            return SalaryBreakdown(b.netSalaryCents, 0, 0, 0, additional, b.netSalaryCents - additional)
+        }
         val gross = s.grossCents.coerceAtLeast(0L)
         val inss = if (s.autoInss) inss2026(gross) else 0L
         val irrf = if (s.autoIrrf) irrf2026(gross, inss, s.dependents) else 0L

@@ -24,8 +24,7 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
         if (b.salary.totalFoodBenefitCents > 0L) {
             SurfaceCard {
                 ValueLine("Custo de alimentação", BudgetMath.food(b))
-                ValueLine("VA/VR usado (até o custo)", minOf(b.salary.totalFoodBenefitCents, BudgetMath.food(b)))
-                Hint("O crédito VA/VR é configurado em Meu salário. Confira quais estabelecimentos e compras aceitam o benefício.")
+                FoodBenefitUsageEditor(b, change)
             }
         }
         SurfaceCard {
@@ -92,6 +91,7 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             ValueLine("Lanches e restaurantes extras", b.foodOutsideCents)
             HorizontalDivider(color = Lilac)
             ValueLine("Alimentação total", BudgetMath.food(b), emphasize = true)
+            ValueLine("Coberto por VA/VR", FoodBenefitMath.coverage(b).totalUsedCents)
             ValueLine("Pago com dinheiro", BudgetMath.foodPaidFromCash(b))
         }
         Hint("Uma lista de planejamento mensal: não há compras automáticas nem acesso à internet.")

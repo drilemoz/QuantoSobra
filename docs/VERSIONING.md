@@ -1,7 +1,7 @@
 # Versionamento — Quanto Sobra?
 
-- Atual: `0.1.0-alpha.14`, `versionCode 14`.
-- Próxima alteração: `0.1.0-alpha.15`, `versionCode 15`.
+- Atual: `0.1.0-alpha.15`, `versionCode 15`.
+- Próxima alteração: `0.1.0-alpha.16`, `versionCode 16`.
 - Pacote fixo: `br.com.quantosobra`.
 - Sincronizar Gradle, workflow Artifact, README, CHANGELOG, RELEASE_NOTES, docs/VALIDATION e interface.
 - Dados antigos em `SharedPreferences` `quanto_sobra_v1` preservados. Schema 6 inclui `workType`, `rentPeriod`, `iptuPeriod`, `foodEstimate`, transporte por modalidade. JSON v1/v2/v3 usa defaults compatíveis.
@@ -12,3 +12,5 @@
 - Alpha.13 preserva dados antigos ao ler JSON schema 1–5; schema 6 adiciona somente campos opcionais `priceOrigin`, `extraDates` e `offDates`, mantendo os valores existentes.
 
 - Alpha.14 adiciona schema JSON 7 opcional (`foodVA`, `foodVR`, `recurringMeals`); lê o `foodBenefit` anterior como VA e preserva toda a estrutura e listas antigas. Não exige limpeza de dados.
+
+- Alpha.15 adiciona JSON schema 8 com `foodDiscountMethod`, `foodDeductionAlreadyInNet`, `vaForMarket`, `vaForMeals`, `vrForMarket`, `vrForMeals`. Em dados schema 1–7 os dois usos cruzados iniciam habilitados para preservar o abatimento geral anterior; em instalações novas assumem VA no mercado e VR nas refeições, permitindo correção. Desconto antigo ID 900002 permanece legível como valor fixo.

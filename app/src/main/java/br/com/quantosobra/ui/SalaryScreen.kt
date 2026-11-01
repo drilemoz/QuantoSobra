@@ -106,10 +106,11 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                     FilledTonalButton(onClick = addNew, colors = ButtonDefaults.filledTonalButtonColors(
                         containerColor = Lilac, contentColor = Purple)) { Text("+ Adicionar") }
                 }
-                if (s.deductions.isEmpty()) {
+                val otherDeductions = s.deductions.filterNot { it.id == FoodBenefitMath.DEDUCTION_ID }
+                if (otherDeductions.isEmpty()) {
                     Hint("Plano de saúde, vale-refeição, adiantamento salarial, contribuição autorizada, faltas ou outros descontos. Não cadastre o VT aqui: ele já vem de Transporte.")
                 }
-                s.deductions.forEach { d ->
+                otherDeductions.forEach { d ->
                     HorizontalDivider(color = Lilac)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -141,7 +142,7 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
                 ValueLine("INSS", summary.inssCents)
                 ValueLine("IRRF", summary.irrfCents)
                 ValueLine("Vale-transporte na folha", summary.transportCents)
-                ValueLine("Demais descontos", summary.otherCents)
+                ValueLine("Outros descontos (inclui VA/VR)", summary.otherCents)
                 HorizontalDivider(color = Lilac)
                 ValueLine("Total dos descontos", summary.totalDeductionsCents)
                 ValueLine("Líquido para o orçamento", summary.netCents, emphasize = true)
@@ -156,7 +157,12 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             FieldAmount("Vale-refeição (VR) que vou usar", s.mealVoucherCents,
                 { update(s.copy(mealVoucherCents = it)) })
             ValueLine("Total previsto de VA + VR", s.totalFoodBenefitCents)
-            Hint("Valor estimado utilizado no mês. Entra como abatimento da categoria Alimentação, sem aumentar o salário em dinheiro. Não confunda com o valor descontado do holerite.")
+            Hint("Benefícios não aumentam seu saldo em dinheiro. Na Alimentação, escolha onde os cartões são aceitos.")
+            HorizontalDivider(color = Lilac)
+            FoodBenefitDeductionEditor(s, update)
+            if (!isGross) {
+                ValueLine("Líquido disponível após ajuste VA/VR", BudgetMath.salaryNet(b), emphasize = true)
+            }
         }
     }
 

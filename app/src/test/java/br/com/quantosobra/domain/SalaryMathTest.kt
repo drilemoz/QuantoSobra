@@ -72,8 +72,12 @@ class SalaryMathTest {
         val b = Budget(netSalaryCents = 300_000, foodOutsideCents = 50_000,
             salary = SalaryConfig(foodBenefitCents = 20_000))
         assertEquals(300_000L, BudgetMath.salaryNet(b))
-        assertEquals(30_000L, BudgetMath.foodPaidFromCash(b))
-        assertEquals(0L, BudgetMath.foodPaidFromCash(b.copy(salary = b.salary.copy(foodBenefitCents = 60_000))))
+        // Sem confirmação de aceitação de VA em restaurantes, não presumir cobertura.
+        assertEquals(50_000L, BudgetMath.foodPaidFromCash(b))
+        val withAcceptance = b.copy(salary = b.salary.copy(vaForMeals = true))
+        assertEquals(30_000L, BudgetMath.foodPaidFromCash(withAcceptance))
+        assertEquals(0L, BudgetMath.foodPaidFromCash(withAcceptance.copy(salary =
+            withAcceptance.salary.copy(foodBenefitCents = 60_000))))
     }
 
     @Test fun optionalDiscountsAndLegacyCompatibility() {

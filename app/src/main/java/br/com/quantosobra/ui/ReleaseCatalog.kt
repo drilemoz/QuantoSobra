@@ -10,8 +10,13 @@ data class ReleaseEntry(
 )
 
 object ReleaseCatalog {
-    const val currentVersion = "0.1.0-alpha.14"
+    const val currentVersion = "0.1.0-alpha.15"
     val recent = listOf(
+        ReleaseEntry("0.1.0-alpha.15", "01/11/2026", "VA/VR sem desconto em dobro e orçamento mais claro", listOf(
+            ReleaseFeature("Participação no benefício", "VA/VR com escolha de percentual, valor fixo, nenhum desconto ou ainda não sei, com aviso do PAT."),
+            ReleaseFeature("Cartões sem sobreposição", "Defina se VA/VR podem pagar supermercado e refeições, sem duplicar gastos ou crédito."),
+            ReleaseFeature("Panorama mais útil", "Aviso de orçamento apertado e atalhos para revisar renda, moradia, alimentação e transporte.")
+        )),
         ReleaseEntry("0.1.0-alpha.14", "01/11/2026", "Marmitas, benefícios e campos mais fáceis de editar", listOf(
             ReleaseFeature("Cursor e digitação", "Agora é possível tocar no meio do valor, mover o cursor e alterar dígitos sem seleção forçada ou máscaras que saltam."),
             ReleaseFeature("Marmita no calendário", "Refeições recorrentes por dia trabalhado, dia do mês ou frequência personalizada com valor mensal automático."),

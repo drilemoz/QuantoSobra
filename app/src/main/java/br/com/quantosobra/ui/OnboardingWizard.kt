@@ -179,17 +179,18 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                         Text("Descontos na folha", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         FieldAmount("Desconto de plano de saúde", deduction(900001L, ""),
                             { writeDeduction(900001L, "Plano de saúde", it) }, compact = true)
-                        FieldAmount("Desconto de VA/VR na folha", deduction(900002L, ""),
-                            { writeDeduction(900002L, "Desconto de VA/VR", it) }, compact = true)
                         WizardPayrollExtras(s, { updated -> set(budget.copy(salary = updated)) })
                         if (!imeVisible) WizardAmountLine("Líquido após descontos", BudgetMath.salaryNet(budget), true)
+                    }
+                    WizardPanel {
+                        FoodBenefitDeductionEditor(s, { updated -> set(budget.copy(salary = updated)) }, compact = true)
                     }
                     if (!imeVisible) {
                         OutlinedButton(onClick = { showSalaryRules = true }, modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp)) { Text("ⓘ  Percentuais e benefícios", fontSize = 12.sp) }
                         WizardNote(if (budget.workType == WorkType.CLT)
-                            "VA/VR reduz o custo da alimentação, não aumenta o salário. Informe descontos somente se constarem na folha; não repita o VT."
-                            else "VA/VR é crédito destinado à alimentação, não renda em dinheiro. Se você informou renda líquida, não desconte itens que já foram abatidos.")
+                            "VA/VR é crédito de alimentação, não salário. O desconto é opcional; não repita o VT nem valores já abatidos."
+                            else "VA/VR não é renda em dinheiro. Com salário líquido informado, marque quando o desconto já estiver incluído.")
                     }
                 }
                 3 -> {
@@ -350,6 +351,9 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                             WizardAmountLine("Alimentação paga em dinheiro", BudgetMath.foodPaidFromCash(budget), true)
                         }
                     }
+                    if (s.totalFoodBenefitCents > 0L) WizardPanel {
+                        FoodBenefitUsageEditor(budget, set)
+                    }
                     if (!imeVisible) WizardNote("Referências de preços são indicativas, não ofertas ao vivo. Você pode editar os itens; enquanto houver preço pendente, a estimativa protege o orçamento.")
                 }
                 10 -> {
@@ -368,14 +372,51 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                             Text("Suas despesas em relação à renda", color = Color.White.copy(alpha = .8f), fontSize = 11.sp)
                         }
                     }
-                    WizardPanel {
-                        WizardAmountLine("Renda após descontos", BudgetMath.salaryNet(budget))
-                        WizardAmountLine("Moradia", BudgetMath.housing(budget))
-                        WizardAmountLine("Alimentação do bolso", BudgetMath.foodPaidFromCash(budget))
-                        WizardAmountLine("Transporte fora da folha", BudgetMath.transportBudgetCost(budget))
-                        WizardAmountLine("Contas e outros gastos", BudgetMath.bills(budget) + BudgetMath.extras(budget))
+                    val remaining = BudgetMath.availableAfterReserve(budget)
+                    val income = BudgetMath.salaryNet(budget)
+                    val ratioLow = income > 0L && remaining <= (income / 10L)
+                    if (income <= 0L || remaining < 0L || ratioLow) {
+                        WizardPanel {
+                            Text(when {
+                                income <= 0L -> "⚠ Renda ainda não informada"
+                                remaining < 0L -> "⚠ Orçamento no vermelho"
+                                else -> "⚠ Orçamento apertado"
+                            }, fontWeight = FontWeight.Bold, color = Negative)
+                            Hint(when {
+                                income <= 0L -> "Informe sua renda para obter um saldo mensal útil."
+                                remaining < 0L -> "As despesas superam a renda. Revise as categorias abaixo."
+                                else -> "Sua margem é de até 10% da renda. Uma despesa imprevista pode consumir o saldo."
+                            })
+                        }
                     }
-                    if (!imeVisible) WizardNote("Simulação. Verifique itens pendentes e descontos no seu holerite. Você poderá editar tudo pelos painéis.")
+                    WizardPanel {
+                        WizardReviewLink("Renda após descontos", BudgetMath.salaryNet(budget)) { step = 2 }
+                        WizardReviewLink("Moradia", BudgetMath.housing(budget)) { step = 7 }
+                        WizardReviewLink("Alimentação do bolso", BudgetMath.foodPaidFromCash(budget)) { step = 9 }
+                        WizardReviewLink("Transporte fora da folha", BudgetMath.transportBudgetCost(budget)) { step = 5 }
+                        WizardReviewLink("Contas da casa", BudgetMath.bills(budget)) { step = 8 }
+                        if (BudgetMath.extras(budget) > 0L)
+                            WizardAmountLine("Outros gastos (ajuste após o wizard)", BudgetMath.extras(budget))
+                        if (budget.reserveCents > 0L) WizardAmountLine("Reserva mensal", budget.reserveCents)
+                        if (budget.salary.totalFoodBenefitCents > 0L) {
+                            HorizontalDivider(color = Lilac)
+                            Text("Cartões de alimentação (não são dinheiro)", color = Ink, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            WizardAmountLine("VA recebido", s.foodBenefitCents)
+                            WizardAmountLine("VR recebido", s.mealVoucherCents)
+                            WizardAmountLine("Desconto VA/VR informado", FoodBenefitMath.deductionCents(s))
+                            WizardAmountLine("Cobertura estimada na alimentação", FoodBenefitMath.coverage(budget).totalUsedCents)
+                            Hint("Confira onde seus cartões são aceitos. " +
+                                if (s.mode == SalaryMode.NET && s.foodDeductionAlreadyInNet)
+                                    "O desconto VA/VR já está incluso no líquido informado, quando configurado."
+                                else "Os descontos aplicáveis são abatidos apenas uma vez.")
+                        }
+                        if (budget.foodProducts.any { it.unitPriceCents <= 0L }) {
+                            Text("⚠ Há ${budget.foodProducts.count { it.unitPriceCents <= 0L }} produtos sem preço; " +
+                                "o supermercado usa uma estimativa.", color = Negative, fontSize = 12.sp)
+                        }
+                    }
+                    if (!imeVisible) WizardNote("Toque em uma categoria para revisar os valores. " +
+                        "Confira descontos e pagamentos elegíveis no holerite e nos cartões.")
                 }
             }
         }
@@ -670,5 +711,16 @@ private fun ScaleCard(title: String, subtitle: String, selected: Boolean,
                 fontWeight = FontWeight.ExtraBold)
             Text(subtitle, color = Muted, fontSize = 10.sp)
         }
+    }
+}
+
+@Composable
+private fun WizardReviewLink(title: String, cents: Long, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 3.dp)) {
+        Text(title, Modifier.weight(1f), color = Ink, fontSize = 12.sp)
+        Text(Money.format(cents), fontWeight = FontWeight.SemiBold, color = DeepPurple, fontSize = 12.sp)
+        Spacer(Modifier.width(6.dp))
+        Text("›", fontSize = 19.sp, color = Purple)
     }
 }
