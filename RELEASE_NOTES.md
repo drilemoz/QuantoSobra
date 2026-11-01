@@ -1,9 +1,10 @@
-# Quanto Sobra? — 0.1.0-alpha.13
+# Quanto Sobra? — 0.1.0-alpha.14
 
-**01/11/2026 · versionCode 13**
+**01/11/2026 · versionCode 14**
 
-- Produtos básicos com quantidades e preços indicativos editáveis e sem duplicar os itens já existentes; fonte de referência: catálogo do Atacadão consultado em 01/11/2026. Valores locais, sujeitos a variação.
-- Wizard e Alimentação permitem criar e editar preços, embalagens e quantidades; subtotal detalhado versus estimativa e indicação de preços pendentes.
-- Escalas 5×2, 6×1, 12×36 e 4×3, com exceções por data e seleção explícita do mês utilizado no transporte.
-- Versão e JSON schema 6 com novos campos opcionais; dados de versões anteriores preservados. Nenhuma alteração na assinatura ou permissões.
-- Build Android completo e testes de interface em aparelho dependem da execução do workflow de CI.
+- Editar valores monetários agora permite mover o cursor, corrigir apenas alguns dígitos e inserir valores no meio sem seleção forçada nem salto da máscara. A formatação aparece ao sair do campo.
+- Marmita e outras refeições recorrentes: nome, valor, frequência e quantidade editáveis tanto no wizard quanto em Alimentação, com apuração pelos dias da escala e exceções.
+- Alimentação mostra separadamente supermercado, refeições recorrentes, extras e total; a estimativa do mercado não é duplicada.
+- Vale-alimentação e vale-refeição separados na etapa 3; descontos adicionais (nome, valor ou %) editáveis. Benefícios não são tratados como salário em dinheiro. Não repetir vale-transporte.
+- Migração não destrutiva, schema 7, ID, permissões e assinatura preservados.
+- Testes de domínio Kotlin/JVM e sintaxe aprovados; build Gradle/Android real e testes com teclado físico/virtual dependem de CI e aparelho.

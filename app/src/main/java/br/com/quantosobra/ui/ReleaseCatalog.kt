@@ -10,8 +10,13 @@ data class ReleaseEntry(
 )
 
 object ReleaseCatalog {
-    const val currentVersion = "0.1.0-alpha.13"
+    const val currentVersion = "0.1.0-alpha.14"
     val recent = listOf(
+        ReleaseEntry("0.1.0-alpha.14", "01/11/2026", "Marmitas, benefícios e campos mais fáceis de editar", listOf(
+            ReleaseFeature("Cursor e digitação", "Agora é possível tocar no meio do valor, mover o cursor e alterar dígitos sem seleção forçada ou máscaras que saltam."),
+            ReleaseFeature("Marmita no calendário", "Refeições recorrentes por dia trabalhado, dia do mês ou frequência personalizada com valor mensal automático."),
+            ReleaseFeature("Benefícios e descontos", "VA e VR separados, descontos adicionais editáveis no assistente e resumo sem somar cartões ao salário em dinheiro.")
+        )),
         ReleaseEntry("0.1.0-alpha.13", "01/11/2026", "Sua alimentação e seu calendário, do seu jeito", listOf(
             ReleaseFeature("Produtos básicos configuráveis", "Oito itens com preços indicativos do Atacadão, embalagens e quantidades editáveis, sem sobrescrever seus produtos."),
             ReleaseFeature("Comida na mesa", "Editor de produtos diretamente no assistente e lista compacta com diferença entre estimativa e subtotal conhecido."),

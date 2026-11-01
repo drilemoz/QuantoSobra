@@ -151,8 +151,11 @@ fun SalaryScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
         }
         SurfaceCard {
             Text("Benefício de alimentação", color = Ink, fontWeight = FontWeight.Bold)
-            FieldAmount("Vale-alimentação/refeição que vou usar", s.foodBenefitCents,
+            FieldAmount("Vale-alimentação (VA) que vou usar", s.foodBenefitCents,
                 { update(s.copy(foodBenefitCents = it)) })
+            FieldAmount("Vale-refeição (VR) que vou usar", s.mealVoucherCents,
+                { update(s.copy(mealVoucherCents = it)) })
+            ValueLine("Total previsto de VA + VR", s.totalFoodBenefitCents)
             Hint("Valor estimado utilizado no mês. Entra como abatimento da categoria Alimentação, sem aumentar o salário em dinheiro. Não confunda com o valor descontado do holerite.")
         }
     }

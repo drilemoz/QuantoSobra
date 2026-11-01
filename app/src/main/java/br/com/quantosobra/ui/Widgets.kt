@@ -67,8 +67,7 @@ fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: Stri
             modifier = Modifier.fillMaxWidth().onFocusChanged { focus ->
                 if (hasFocus != focus.isFocused) {
                     hasFocus = focus.isFocused
-                    if (focus.isFocused) editor = editor.copy(selection = TextRange(0, editor.text.length))
-                    else {
+                    if (!focus.isFocused) {
                         val shown = if (cents == 0L) "" else Money.inputGrouped(cents)
                         editor = TextFieldValue(shown, TextRange(shown.length))
                     }
@@ -76,11 +75,11 @@ fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: Stri
             },
             value = editor,
             onValueChange = { newValue ->
-                if (newValue.text.length <= 19) {
-                    val shown = Money.liveInput(newValue.text, editor.text)
-                    editor = TextFieldValue(shown, TextRange(Money.caretAfterFormatting(
-                        newValue.text, newValue.selection.start, shown)))
-                    Money.parse(shown)?.let(onChange)
+                if (newValue.text.length <= 22 && Money.isValidMoneyDraft(newValue.text)) {
+                    // Preserva a seleção, o toque no meio do número e a composição do IME.
+                    // Pontos de milhar só aparecem ao sair do campo.
+                    editor = newValue
+                    Money.parse(newValue.text)?.let(onChange)
                 }
             },
             label = { Text(label, fontSize = if (compact) 12.sp else 14.sp) },
@@ -100,25 +99,36 @@ fun FieldAmount(label: String, cents: Long, onChange: (Long) -> Unit, hint: Stri
     }
 }
 
-/** Campo para formulários temporários, com pontuação automática ao perder foco. */
+/** Entrada monetária temporária: texto e cursor ficam sob controle do teclado durante a edição. */
 @Composable
 fun CurrencyTextEntry(label: String, value: String, onChange: (String) -> Unit) {
     val keyboard = LocalSoftwareKeyboardController.current
     var focused by remember { mutableStateOf(false) }
+    var editor by remember { mutableStateOf(TextFieldValue(value)) }
+    LaunchedEffect(value) {
+        if (value != editor.text) editor = TextFieldValue(value, TextRange(value.length))
+    }
     OutlinedTextField(
         modifier = Modifier.fillMaxWidth().onFocusChanged { focus ->
             if (focused != focus.isFocused) {
                 focused = focus.isFocused
-                Money.parse(value)?.let { cents ->
-                    onChange(Money.inputGrouped(cents))
+                if (!focused) Money.parse(editor.text)?.let { cents ->
+                    val shown = Money.inputGrouped(cents)
+                    editor = TextFieldValue(shown, TextRange(shown.length))
+                    onChange(shown)
                 }
             }
         },
-        value = value,
-        onValueChange = { if (it.length <= 19) onChange(Money.liveInput(it, value)) },
+        value = editor,
+        onValueChange = { new ->
+            if (new.text.length <= 22 && Money.isValidMoneyDraft(new.text)) {
+                editor = new
+                onChange(new.text)
+            }
+        },
         label = { Text(label) },
         prefix = { Text("R$ ") },
-        isError = Money.parse(value) == null,
+        isError = Money.parse(editor.text) == null,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),

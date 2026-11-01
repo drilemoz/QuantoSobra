@@ -21,10 +21,10 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
     var editing by remember { mutableStateOf<FoodProduct?>(null) }
     Page("Alimentação", "Planeje e ajuste suas compras", back) {
         SectionTotal("Pago com dinheiro no mês", BudgetMath.foodPaidFromCash(b))
-        if (b.salary.foodBenefitCents > 0L) {
+        if (b.salary.totalFoodBenefitCents > 0L) {
             SurfaceCard {
                 ValueLine("Custo de alimentação", BudgetMath.food(b))
-                ValueLine("VA/VR usado (até o custo)", minOf(b.salary.foodBenefitCents, BudgetMath.food(b)))
+                ValueLine("VA/VR usado (até o custo)", minOf(b.salary.totalFoodBenefitCents, BudgetMath.food(b)))
                 Hint("O crédito VA/VR é configurado em Meu salário. Confira quais estabelecimentos e compras aceitam o benefício.")
             }
         }
@@ -32,10 +32,12 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             FieldAmount("Estimativa mensal do supermercado", b.foodEstimateCents,
                 { change(b.copy(foodEstimateCents = it)) },
                 "Enquanto os produtos não têm todos os preços, a estimativa evita subestimar o gasto. Quando estiverem completos, será substituída pelo total real.")
-            Text("Refeições fora de casa", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            FieldAmount("Restaurantes / lanches por mês", b.foodOutsideCents,
+            Text("Alimentação fora de casa", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            FieldAmount("Lanches, restaurantes e delivery extras (mês)", b.foodOutsideCents,
                 { change(b.copy(foodOutsideCents = it)) })
+            Hint("Inclua apenas gastos extras; não repita marmitas cadastradas como refeições recorrentes.")
         }
+        SurfaceCard { RecurringMealsEditor(b, change) }
         SurfaceCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
@@ -82,6 +84,15 @@ fun FoodScreen(b: Budget, change: (Budget) -> Unit, back: () -> Unit) {
             if (b.foodProducts.isEmpty() || b.foodProducts.any { it.unitPriceCents <= 0L })
                 ValueLine("Estimativa considerada no orçamento", BudgetMath.foodMarket(b), emphasize = true)
             else ValueLine("Total dos produtos no orçamento", BudgetMath.foodMarket(b), emphasize = true)
+        }
+        SurfaceCard {
+            Text("Resumo mensal de alimentação", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            ValueLine("Supermercado no orçamento", BudgetMath.foodMarket(b))
+            ValueLine("Marmitas / refeições recorrentes", BudgetMath.recurringMealCost(b))
+            ValueLine("Lanches e restaurantes extras", b.foodOutsideCents)
+            HorizontalDivider(color = Lilac)
+            ValueLine("Alimentação total", BudgetMath.food(b), emphasize = true)
+            ValueLine("Pago com dinheiro", BudgetMath.foodPaidFromCash(b))
         }
         Hint("Uma lista de planejamento mensal: não há compras automáticas nem acesso à internet.")
     }

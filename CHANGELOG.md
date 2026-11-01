@@ -1,5 +1,13 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.14 (01/11/2026)
+
+- Correção da edição monetária: removida seleção forçada do texto ao focar e reformatação em cada tecla; TextFieldValue mantém seleção e composição do teclado, com formato final em reais somente no fim da edição. Corrigido também nos diálogos.
+- Marmitas/refeições recorrentes no wizard e no painel Alimentação: cadastro, alteração, exclusão, preço em reais, frequência e quantidade com projeção do mês do calendário. O mesmo gasto não é somado duas vezes e o relatório discrimina mercado, refeições recorrentes e extras.
+- Benefícios VA/VR separados e descontos CLT personalizados na etapa 3, com valor fixo ou porcentagem. Dados antigos preservados; schema JSON 7 opcional.
+- VersionCode 14, documentação, catálogo de novidades e nomes de Artifacts sincronizados. 45 testes de domínio Kotlin/JVM e 31 fontes Kotlin analisadas sintaticamente; build Android completo continua pendente de CI.
+
+
 ## 0.1.0-alpha.13 (01/11/2026)
 
 - Inclusão de oito produtos básicos com referência editável de preços de catálogo Atacadão, seleção individual, quantidades e embalagens configuráveis e proteção de itens existentes contra sobrescrita/duplicação. A consulta não é automática e preços são indicativos.

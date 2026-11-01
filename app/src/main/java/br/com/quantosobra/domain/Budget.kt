@@ -30,9 +30,13 @@ data class SalaryConfig(
     val autoIrrf: Boolean = true,
     val dependents: Int = 0,
     /** Crédito alimentação que a pessoa pretende efetivamente usar (não é renda em dinheiro). */
+    /** Compatibilidade: valor antigo de VA/VR é tratado como vale-alimentação. */
     val foodBenefitCents: Long = 0,
+    val mealVoucherCents: Long = 0,
     val deductions: List<PayrollDeduction> = emptyList()
-)
+) {
+    val totalFoodBenefitCents: Long get() = foodBenefitCents.coerceAtLeast(0) + mealVoucherCents.coerceAtLeast(0)
+}
 
 
 /** Todos os valores monetários são armazenados em centavos (Long). */
@@ -46,6 +50,21 @@ data class FoodProduct(
     val unit: String = "un",
     /** REFERENCIA_ATACADAO = preço indicativo carregado em 01/11/2026; MANUAL = valor informado. */
     val priceOrigin: String = "MANUAL"
+)
+
+/** Frequência escolhida explicitamente, sem supor compra em dias de folga. */
+enum class MealFrequency(val title: String) {
+    WORK_DAYS("Dias de trabalho"), EVERY_DAY("Todos os dias"),
+    WEEKLY("Vezes por semana"), MONTHLY("Vezes por mês"), CUSTOM_DAYS("Dias informados")
+}
+
+data class RecurringMeal(
+    val id: Long,
+    val name: String,
+    val unitPriceCents: Long,
+    val frequency: MealFrequency = MealFrequency.WORK_DAYS,
+    /** Unidades por dia, semana ou mês conforme a frequência. */
+    val timesPerPeriod: Int = 1
 )
 
 enum class OtherCategory(val displayName: String) {
@@ -104,6 +123,7 @@ data class Budget(
     val gasCents: Long = 0,
     val otherBillsCents: Long = 0,
     val foodOutsideCents: Long = 0,
+    val recurringMeals: List<RecurringMeal> = emptyList(),
     val foodProducts: List<FoodProduct> = emptyList(),
     val transport: TransportConfig = TransportConfig(),
     val extras: List<ExtraExpense> = emptyList(),
@@ -127,8 +147,33 @@ object BudgetMath {
         // Durante o preenchimento parcial, não subestimar o orçamento do mercado.
         return if (allPriced) detailed else maxOf(detailed, b.foodEstimateCents)
     }
-    fun food(b: Budget): Long = b.foodOutsideCents + foodMarket(b)
-    fun foodPaidFromCash(b: Budget): Long = (food(b) - b.salary.foodBenefitCents).coerceAtLeast(0L)
+    /** Calcula a frequência no mês do orçamento, incluindo exceções de folga/plantão. */
+    fun workDays(b: Budget): Int {
+        val t = b.transport
+        if (t.workSchedule == WorkSchedule.MANUAL) return t.daysPerMonth.coerceIn(0, 31)
+        val month = WorkCalendar.month(t.workCalendarMonth)
+        val anchor = runCatching { java.time.LocalDate.parse(t.workAnchorDate) }.getOrNull()
+            ?: month.atDay(1)
+        return WorkCalendar.days(month, t.workSchedule, t.workWeekdaysMask, anchor,
+            WorkCalendar.parseDates(t.customWorkDates), WorkCalendar.parseDates(t.workExtraDates),
+            WorkCalendar.parseDates(t.workOffDates)).size
+    }
+
+    fun mealOccurrences(b: Budget, meal: RecurringMeal): Int {
+        val n = meal.timesPerPeriod.coerceIn(0, 366)
+        val length = WorkCalendar.month(b.transport.workCalendarMonth).lengthOfMonth()
+        return when (meal.frequency) {
+            MealFrequency.WORK_DAYS -> workDays(b) * n.coerceAtMost(20)
+            MealFrequency.EVERY_DAY -> length * n.coerceAtMost(20)
+            MealFrequency.WEEKLY -> (n.coerceAtMost(50) * length + 3) / 7
+            MealFrequency.MONTHLY, MealFrequency.CUSTOM_DAYS -> n
+        }
+    }
+    fun mealCost(b: Budget, meal: RecurringMeal): Long =
+        meal.unitPriceCents.coerceAtLeast(0L) * mealOccurrences(b, meal)
+    fun recurringMealCost(b: Budget): Long = b.recurringMeals.sumOf { mealCost(b, it) }
+    fun food(b: Budget): Long = b.foodOutsideCents + foodMarket(b) + recurringMealCost(b)
+    fun foodPaidFromCash(b: Budget): Long = (food(b) - b.salary.totalFoodBenefitCents).coerceAtLeast(0L)
     /** Somente água, eletricidade e internet são mostradas em Contas da casa. */
     fun bills(b: Budget): Long = b.electricityCents + b.waterCents + b.internetCents
     /** Preserva valores já cadastrados de celular, gás e outras contas no orçamento. */
@@ -268,7 +313,7 @@ object SalaryMath {
         val other = s.deductions.sumOf { d ->
             val rate = d.percentBasisPoints?.coerceIn(0, 10_000)
             if (rate != null) {
-                val basis = if (d.percentBase == "food") s.foodBenefitCents else gross
+                val basis = if (d.percentBase == "food") s.totalFoodBenefitCents else gross
                 (basis * rate + 5_000L) / 10_000L
             } else d.amountCents.coerceAtLeast(0L)
         }
@@ -334,6 +379,10 @@ object Money {
         }
         return formatted.length
     }
+
+    /** Validação superficial durante a edição; não reescreve o texto nem o cursor. */
+    fun isValidMoneyDraft(raw: String): Boolean = raw.isEmpty() ||
+        raw.matches(Regex("(?:R\\$\\s*)?[0-9.,\\s]*"))
 
     /** Aceita 1.234,56, 1234.56, 1234 e 5,70. Valores negativos não são aceitos. */
     fun parse(raw: String): Long? {

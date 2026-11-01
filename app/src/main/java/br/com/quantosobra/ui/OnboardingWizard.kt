@@ -41,7 +41,7 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
         "O que entra e o que sai do contracheque.", "Como você chega ao trabalho?",
         "Um calendário. Sem contar dias na cabeça.", "Quanto custa chegar e voltar?",
         "O valor certo, sem desconto em dobro.", "Aluguel e taxas, tudo no mesmo lugar.",
-        "Pequenas contas que fazem diferença.", "Produtos, embalagens e preços ajustáveis.", "Seu orçamento começa aqui.")
+        "Pequenas contas que fazem diferença.", "Supermercado, marmita e alimentação ajustáveis.", "Seu orçamento começa aqui.")
     val count = titles.size
     val compact = LocalConfiguration.current.screenHeightDp < 760
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
@@ -65,7 +65,8 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
         val month = WorkCalendar.month(t2.workCalendarMonth)
         val anchor = runCatching { LocalDate.parse(t2.workAnchorDate) }.getOrNull() ?: LocalDate.now()
         val dates = WorkCalendar.parseDates(t2.customWorkDates)
-        val countDays = WorkCalendar.days(month, t2.workSchedule, t2.workWeekdaysMask, anchor, dates).size
+        val countDays = WorkCalendar.days(month, t2.workSchedule, t2.workWeekdaysMask, anchor, dates,
+            WorkCalendar.parseDates(t2.workExtraDates), WorkCalendar.parseDates(t2.workOffDates)).size
         set(budget.copy(transport = t2.copy(workCalendarMonth = month.toString(),
             daysPerMonth = if (t2.workSchedule == WorkSchedule.MANUAL) t2.daysPerMonth else countDays)))
     }
@@ -167,21 +168,28 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                 }
                 2 -> {
                     WizardPanel {
-                        FieldAmount("Vale-refeição / alimentação recebido", s.foodBenefitCents,
+                        Text("Benefícios recebidos", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        FieldAmount("Vale-alimentação (VA)", s.foodBenefitCents,
                             { set(budget.copy(salary = s.copy(foodBenefitCents = it))) }, compact = true)
-                        if (budget.workType == WorkType.CLT) {
-                            FieldAmount("Desconto de plano de saúde", deduction(900001L, ""),
-                                { writeDeduction(900001L, "Plano de saúde", it) }, compact = true)
-                            FieldAmount("Desconto de VA/VR na folha", deduction(900002L, ""),
-                                { writeDeduction(900002L, "Desconto de VA/VR", it) }, compact = true)
-                            FieldAmount("Outros descontos no salário", deduction(900003L, ""),
-                                { writeDeduction(900003L, "Outros descontos", it) }, compact = true)
-                        }
+                        FieldAmount("Vale-refeição (VR)", s.mealVoucherCents,
+                            { set(budget.copy(salary = s.copy(mealVoucherCents = it))) }, compact = true)
+                        if (!imeVisible) WizardAmountLine("Total VA + VR (não é dinheiro)", s.totalFoodBenefitCents)
+                    }
+                    if (budget.workType == WorkType.CLT) WizardPanel {
+                        Text("Descontos na folha", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        FieldAmount("Desconto de plano de saúde", deduction(900001L, ""),
+                            { writeDeduction(900001L, "Plano de saúde", it) }, compact = true)
+                        FieldAmount("Desconto de VA/VR na folha", deduction(900002L, ""),
+                            { writeDeduction(900002L, "Desconto de VA/VR", it) }, compact = true)
+                        WizardPayrollExtras(s, { updated -> set(budget.copy(salary = updated)) })
+                        if (!imeVisible) WizardAmountLine("Líquido após descontos", BudgetMath.salaryNet(budget), true)
                     }
                     if (!imeVisible) {
                         OutlinedButton(onClick = { showSalaryRules = true }, modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp)) { Text("ⓘ  Percentuais e benefícios", fontSize = 12.sp) }
-                        WizardNote("VA/VR é um crédito de alimentação, não renda em dinheiro. Não repita o VT nos descontos.")
+                        WizardNote(if (budget.workType == WorkType.CLT)
+                            "VA/VR reduz o custo da alimentação, não aumenta o salário. Informe descontos somente se constarem na folha; não repita o VT."
+                            else "VA/VR é crédito destinado à alimentação, não renda em dinheiro. Se você informou renda líquida, não desconte itens que já foram abatidos.")
                     }
                 }
                 3 -> {
@@ -310,8 +318,9 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                     WizardPanel {
                         FieldAmount("Supermercado mensal (estimativa)", budget.foodEstimateCents,
                             { set(budget.copy(foodEstimateCents = it)) }, compact = true)
-                        FieldAmount("Restaurantes / lanches por mês", budget.foodOutsideCents,
+                        FieldAmount("Lanches e restaurantes extras (mês)", budget.foodOutsideCents,
                             { set(budget.copy(foodOutsideCents = it)) }, compact = true)
+                        RecurringMealsEditor(budget, set)
                         OutlinedButton(onClick = { chooseEssential = true },
                             modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(15.dp)) {
                             Text("＋ Carregar produtos básicos", fontSize = 12.sp)
@@ -334,7 +343,12 @@ fun OnboardingWizard(initial: Budget, finish: (Budget) -> Unit) {
                                 }
                             }
                         }
-                        if (!imeVisible) WizardAmountLine("Alimentação paga em dinheiro", BudgetMath.foodPaidFromCash(budget), true)
+                        if (!imeVisible) {
+                            WizardAmountLine("Supermercado considerado", BudgetMath.foodMarket(budget))
+                            WizardAmountLine("Marmitas e recorrentes", BudgetMath.recurringMealCost(budget))
+                            WizardAmountLine("Lanches extras", budget.foodOutsideCents)
+                            WizardAmountLine("Alimentação paga em dinheiro", BudgetMath.foodPaidFromCash(budget), true)
+                        }
                     }
                     if (!imeVisible) WizardNote("Referências de preços são indicativas, não ofertas ao vivo. Você pode editar os itens; enquanto houver preço pendente, a estimativa protege o orçamento.")
                 }

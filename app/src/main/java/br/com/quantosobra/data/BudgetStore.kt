@@ -57,6 +57,18 @@ class BudgetStore(context: Context) {
                 priceOrigin = if (p.optString("priceOrigin") == "REFERENCIA_ATACADAO") "REFERENCIA_ATACADAO" else "MANUAL"
             )
         }
+        val mealJ = j.optJSONArray("recurringMeals") ?: JSONArray()
+        val meals = (0 until minOf(mealJ.length(), 100)).mapNotNull { i ->
+            val item = mealJ.optJSONObject(i) ?: return@mapNotNull null
+            val name = item.optString("name").trim().take(80)
+            if (name.isEmpty()) null else RecurringMeal(
+                id = item.optLong("id", i.toLong()), name = name,
+                unitPriceCents = item.nonNegativeLong("price"),
+                frequency = MealFrequency.entries.find { it.name == item.optString("frequency") }
+                    ?: MealFrequency.WORK_DAYS,
+                timesPerPeriod = item.nonNegativeInt("times", 1, 366)
+            )
+        }
         val others = j.optJSONArray("extras") ?: JSONArray()
         val extras = (0 until minOf(others.length(), 500)).mapNotNull { index ->
             val e = others.optJSONObject(index) ?: return@mapNotNull null
@@ -92,7 +104,9 @@ class BudgetStore(context: Context) {
                 autoInss = salaryJ.optBoolean("autoInss", true),
                 autoIrrf = salaryJ.optBoolean("autoIrrf", true),
                 dependents = salaryJ.nonNegativeInt("dependents", 0, 20),
-                foodBenefitCents = salaryJ.nonNegativeLong("foodBenefit"),
+                foodBenefitCents = if (salaryJ.has("foodVA")) salaryJ.nonNegativeLong("foodVA")
+                    else salaryJ.nonNegativeLong("foodBenefit"),
+                mealVoucherCents = salaryJ.nonNegativeLong("foodVR"),
                 deductions = deductions
             ),
             foodEstimateCents = j.nonNegativeLong("foodEstimate"),
@@ -106,6 +120,7 @@ class BudgetStore(context: Context) {
             gasCents = j.nonNegativeLong("gas"),
             otherBillsCents = j.nonNegativeLong("otherBills"),
             foodOutsideCents = j.nonNegativeLong("foodOutside"),
+            recurringMeals = meals,
             foodProducts = products,
             transport = TransportConfig(
                 commuteMode = CommuteMode.entries.find { it.name == t.optString("commute") }
@@ -136,7 +151,7 @@ class BudgetStore(context: Context) {
     }
 
     private fun toJson(b: Budget): JSONObject = JSONObject().apply {
-        put("schema", 6)
+        put("schema", 7)
         put("workType", b.workType.name)
         put("rentPeriod", b.rentPeriod.name)
         put("iptuPeriod", b.iptuPeriod.name)
@@ -146,7 +161,9 @@ class BudgetStore(context: Context) {
             put("autoInss", b.salary.autoInss)
             put("autoIrrf", b.salary.autoIrrf)
             put("dependents", b.salary.dependents)
-            put("foodBenefit", b.salary.foodBenefitCents)
+            put("foodBenefit", b.salary.totalFoodBenefitCents)
+            put("foodVA", b.salary.foodBenefitCents)
+            put("foodVR", b.salary.mealVoucherCents)
             put("deductions", JSONArray().apply {
                 b.salary.deductions.forEach { d -> put(JSONObject().apply {
                     put("id", d.id); put("name", d.name); put("value", d.amountCents)
@@ -167,6 +184,12 @@ class BudgetStore(context: Context) {
         put("gas", b.gasCents)
         put("otherBills", b.otherBillsCents)
         put("foodOutside", b.foodOutsideCents)
+        put("recurringMeals", JSONArray().apply {
+            b.recurringMeals.take(100).forEach { m -> put(JSONObject().apply {
+                put("id", m.id); put("name", m.name); put("price", m.unitPriceCents)
+                put("frequency", m.frequency.name); put("times", m.timesPerPeriod)
+            }) }
+        })
         put("reserve", b.reserveCents)
         put("food", JSONArray().apply {
             b.foodProducts.forEach { p -> put(JSONObject().apply {

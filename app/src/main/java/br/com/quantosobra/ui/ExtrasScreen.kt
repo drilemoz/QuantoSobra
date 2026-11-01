@@ -92,12 +92,7 @@ private fun ExtraDialog(initial: ExtraExpense?, dismiss: () -> Unit,
                 }
             }
         }
-        OutlinedTextField(amount, { if (it.length <= 19) amount = Money.liveInput(it) },
-            modifier = Modifier.fillMaxWidth(), label = { Text("Valor mensal") },
-            prefix = { Text("R$ ") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true, isError = parsed == null,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp))
+        CurrencyTextEntry("Valor mensal", amount, { amount = it })
         Hint("Para compras parceladas, registre somente a parcela de cada mês.")
     }
 }

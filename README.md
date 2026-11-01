@@ -2,7 +2,14 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.13` · **versionCode:** `13` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.14` · **versionCode:** `14` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Digitação, marmitas e benefícios — alpha.14
+
+- **Correção do cursor em campos de dinheiro:** o valor digitado não é selecionado automaticamente ao receber foco e não recebe máscara a cada tecla. O Android conserva a seleção e a posição de inserção; somente após perder o foco a exibição recebe pontuação de milhar e duas casas decimais. A correção se aplica aos campos de todas as etapas, à alimentação e às janelas de edição de produtos/descontos. O valor é armazenado em centavos inteiros.
+- **Marmitas e refeições recorrentes:** nova lista mensal editável (nome, preço, frequência, quantidade), disponível tanto no wizard etapa 10 quanto no painel Alimentação. Frequências: dias de trabalho, todos os dias, vezes por semana (projeção), vezes por mês e dias informados. Utiliza dias de trabalho do calendário de referência com exceções de folga/plantão; no modo manual, usa o número de dias declarado. Os gastos são somados **uma vez** à alimentação; o campo de restaurantes deve conter somente extras.
+- **Benefícios e descontos no wizard:** Vale-alimentação e Vale-refeição em campos independentes, sem contabilizar cartões como salário em dinheiro; os descontos CLT podem ser nomeados, incluídos, editados ou excluídos, com opção de valor fixo ou percentual da base escolhida. Mantidos plano de saúde e desconto de VA/VR. Descontos de VT seguem calculados em Transporte.
+- **Retrocompatibilidade:** JSON schema 7 acrescenta `foodVA`, `foodVR` e `recurringMeals`. O crédito antigo `foodBenefit` é migrado visualmente para VA e preservado; VR inicia zerado. Nenhum dado existente é apagado. App continua offline, sem consultar preços automaticamente.
 
 ## Alimentação e escala editáveis — alpha.13
 
@@ -61,7 +68,7 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.13-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.14-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -126,7 +133,7 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.13-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.14-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.
