@@ -1,12 +1,9 @@
-# Quanto Sobra? — 0.1.0-alpha.16
+# Quanto Sobra? — 0.1.0-alpha.17
 
-**01/11/2026 · versionCode 16**
+**05/11/2026 · versionCode 17**
 
-- Wizard e central de renda adaptados a CLT, MEI, PJ, autônomo, informal, servidor e outras rendas.
-- Separe recebimentos, despesas profissionais, impostos e contribuições informadas, reservas e retirada pessoal; fontes adicionais configuráveis sem duplicação.
-- MEI: DAS 2026 opcional e ajustável por atividade; indicação de faturamento acumulado e teto geral proporcional à abertura. MEI caminhoneiro precisa consultar PGMEI.
-- Renda variável: histórico de três meses, média e cenário conservador meramente informativo.
-- Servidor público usa valores reais do contracheque, sem aplicar a tabela CLT indevidamente.
-- Troca de vínculo não herda desconto de vale-transporte CLT; assistente oferece reembolso fora da CLT.
-- Compatibilidade com schemas antigos e persistência opcional no schema 9.
-- 67 testes Kotlin/JVM de domínio aprovados; 35 fontes Kotlin sem erros sintáticos PSI. Build Android real ainda pendente.
+- **Falha corrigida:** encerramento do aplicativo ao abrir a tela de novidades após atualização. A versão anterior tinha 4 novidades, mas a tela tentava usar o 4º ícone de uma lista com apenas 3.
+- As novidades agora têm seleção defensiva de ícones: itens adicionais usam símbolo substituto, sem acessar índices inexistentes.
+- Testes de regressão adicionados para a quarta novidade e quantidades maiores.
+- Mantidos pacote `br.com.quantosobra`, schema JSON 9, preferências e dados financeiros locais; não é necessário apagar os dados para atualizar.
+- A compilação Android e os testes em aparelho precisam ser confirmados no GitHub Actions e no dispositivo.

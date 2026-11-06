@@ -2,7 +2,13 @@
 
 Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, para simular um orçamento mensal e responder: *quanto sobra do meu salário depois de morar, comer, pagar contas, me transportar e reservar dinheiro?*
 
-**Versão:** `0.1.0-alpha.16` · **versionCode:** `16` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+**Versão:** `0.1.0-alpha.17` · **versionCode:** `17` · **Pacote:** `br.com.quantosobra` · **Android:** 8.0+ (API 26)
+
+## Correção de fechamento na abertura — alpha.17
+
+- Corrigido `ArrayIndexOutOfBoundsException: length=3; index=3` na tela de novidades. A alpha.16 tinha quatro destaques e três símbolos; o quarto causava encerramento na composição inicial de atualizações.
+- A tela agora solicita ícones por meio de `ReleaseCatalog.featureIcon(index)`, com símbolo alternativo seguro para listas maiores. Adicionados testes de regressão para a quarta novidade e novos itens.
+- `versionCode` 17, mesmo pacote `br.com.quantosobra`, mesmo schema JSON 9 e mesmos dados/assinatura da versão anterior. Nenhuma limpeza de dados é necessária.
 
 ## Tipos de trabalho e renda detalhada — alpha.16
 
@@ -89,7 +95,7 @@ Aplicativo Android **nativo em Kotlin e Jetpack Compose**, pequeno e offline, pa
 
 ## APK Release assinado e Secrets (alpha.6)
 
-O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.16-release-assinado`, com assinatura Release estável:
+O workflow mantém o APK **Debug** normalmente, sem exigir Secrets. Em execuções por **push** ou manualmente (não em pull requests), se os quatro Secrets abaixo existirem no GitHub, ele também produz `QuantoSobra-0.1.0-alpha.17-release-assinado`, com assinatura Release estável:
 
 - `KEYSTORE_BASE64` — bytes da keystore PKCS12 convertidos em base64, linha única.
 - `KEYSTORE_PASSWORD` — senha da keystore.
@@ -154,7 +160,7 @@ O estilo é autoral, em roxo/lilás, com cartões compactos, gradientes e modais
 
 1. Crie um repositório vazio no GitHub e envie o **conteúdo da pasta do projeto** para a raiz, incluindo `.github/workflows/android.yml`.
 2. Vá a **Actions → Gerar APK → Run workflow**. Também compila em push para `main`/`master`.
-3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.16-debug** e baixe o APK.
+3. Se o job ficar verde, abra **Artifacts → QuantoSobra-0.1.0-alpha.17-debug** e baixe o APK.
 4. Instale o APK Debug no Android. Atenção: APK Debug tem assinatura automática do ambiente CI; não é chave estável para atualizações de produção.
 
 Para abrir pelo Android Studio, use JDK 17, SDK Android 36, Android Gradle Plugin 8.10.1, Gradle 8.11.1 e Kotlin 2.1.20. O projeto **não inclui o binário de Gradle Wrapper** (`gradle-wrapper.jar`) porque não pôde ser obtido no ambiente de geração. Para uso local, instale Gradle 8.11.1 e rode `gradle :app:assembleDebug` (ou gere o wrapper via `gradle wrapper --gradle-version 8.11.1`). O GitHub Actions não depende do wrapper.

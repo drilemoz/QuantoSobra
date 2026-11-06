@@ -155,7 +155,7 @@ fun WhatsNewScreen(onContinue: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(11.dp)) {
                     Box(Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(Lilac),
                         contentAlignment = Alignment.Center) {
-                        Text(listOf("✦", "⚙", "↻")[index], color = Purple, fontSize = 23.sp)
+                        Text(ReleaseCatalog.featureIcon(index), color = Purple, fontSize = 23.sp)
                     }
                     Column(Modifier.weight(1f)) {
                         Text(feature.title, color = Ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)

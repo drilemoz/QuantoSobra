@@ -10,8 +10,17 @@ data class ReleaseEntry(
 )
 
 object ReleaseCatalog {
-    const val currentVersion = "0.1.0-alpha.16"
+    const val currentVersion = "0.1.0-alpha.17"
+
+    // Os destaques podem crescer sem quebrar a renderização da tela de novidades.
+    private val featureIcons = listOf("✦", "⚙", "↻", "▣")
+    fun featureIcon(index: Int): String = featureIcons.getOrElse(index) { "✓" }
+
     val recent = listOf(
+        ReleaseEntry("0.1.0-alpha.17", "05/11/2026", "Correção da abertura do aplicativo", listOf(
+            ReleaseFeature("Tela de novidades corrigida", "Corrigido o fechamento ao exibir mais novidades que ícones disponíveis."),
+            ReleaseFeature("Atualizações mais seguras", "Adicionada proteção para que novas novidades não provoquem o mesmo erro.")
+        )),
         ReleaseEntry("0.1.0-alpha.16", "01/11/2026", "Sua renda com regras próprias", listOf(
             ReleaseFeature("Modalidades de renda", "MEI, PJ, autônomo, informal, servidor e outras fontes com formulários específicos."),
             ReleaseFeature("Receita não é salário", "Separe faturamento, despesas, impostos, reservas, retirada pessoal e fontes adicionais."),

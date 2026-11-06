@@ -1,5 +1,11 @@
 # Histórico de alterações
 
+## 0.1.0-alpha.17 (05/11/2026)
+- Corrigido crash de abertura após atualização: a tela `WhatsNewScreen` acessava o índice 3 de uma lista com somente três ícones quando a release alpha.16 tinha quatro novidades.
+- Ícones agora são obtidos pelo catálogo, com fallback para qualquer quantidade de novidades e cobertura de regressão para índice 3 e acima.
+- Mesmo pacote e schema JSON 9; orçamento e preferências locais preservados. VersionCode 17 e GitHub Actions/README/notas sincronizados.
+- Compilação Android e teste em aparelho ainda pendentes até execução do workflow.
+
 ## 0.1.0-alpha.16 (01/11/2026)
 - Perfis separados para MEI, PJ, autônomo, informal, servidor público e outras rendas; wizard adaptativo e editor de renda persistente.
 - Receita/faturamento e retirada pessoal separados de custos operacionais, impostos, contribuição e reservas; fontes de renda adicionais com frequência.
